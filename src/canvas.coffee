@@ -5,6 +5,16 @@ class Canvas
     @settings = @mergeObj options, @defaults
     @el = @createCanvas()
     @image = @loadImage()
+    # Set state variables
+    @currentAngle = 0
+    @mouseDown = false
+    @scale = 1.0
+    @scaleMultiplier = 0.8
+    @startDragOffset = {}
+    # @translatePos =
+    #   x: canvas.width / 2
+    #   y: canvas.height / 2
+
 
 
   mergeObj: (mergee, merger) ->
@@ -19,108 +29,87 @@ class Canvas
       height: '300'
 
 
+  draw: ->
+    cx = @el.getContext("2d")
+    # clear canvas
+    cx.clearRect(0, 0, @el.width, @el.height)
+
+    cx.save()
+
+    cx.translate(@translatePos.x, @translatePos.y)
+    cx.scale(@scale, @scale)
+    cx.rotate(@currentAngle * Math.PI / 180);
+
+    cx.drawImage(@image, -@image.width / 2, -@image.width / 2);
+    cx.restore()
+
+
   createCanvas: ->
-
-
-    draw = (scale, translatePos) =>
-      cx = @el.getContext("2d")
-      # clear canvas
-      cx.clearRect(0, 0, @el.width, @el.height)
-
-      cx.save()
-
-      console.log translatePos
-      cx.translate(translatePos.x, translatePos.y)
-      cx.scale(scale, scale)
-      cx.rotate(@el.currentAngle * Math.PI / 180);
-      cx.drawImage(@image, -@image.width / 2, -@image.width / 2);
-      cx.restore()
-
-
     canvas = document.createElement 'canvas'
     canvas.height = @settings.height
     canvas.width = @settings.width
 
-    # TODO: Make translatePos correlate to the actual image location
-    translatePos =
-      x: canvas.width / 2
-      y: canvas.height / 2
-
-    scale = 1.0
-    scaleMultiplier = 0.8
-    startDragOffset = {}
-    mouseDown = false
-
-    # add button event listeners
+    # Add rotation handlers
     document.getElementById("plus").addEventListener "click", =>
-      scale /= scaleMultiplier
-      draw scale, translatePos
+      @currentAngle += 90
+      @draw()
     , false
 
     document.getElementById("minus").addEventListener "click", =>
-      scale *= scaleMultiplier
-      draw scale, translatePos
+      @currentAngle -= 90
+      @draw()
     , false
 
-    # add event listeners to handle screen drag
-    canvas.addEventListener "mousedown", (e) =>
-      mouseDown = true
-      console.log 'start', translatePos
-      startDragOffset.x = e.clientX - translatePos.x
-      startDragOffset.y = e.clientY - translatePos.y
-      console.log 'startDragOffset', startDragOffset
-
-    canvas.addEventListener "mouseup", (e) ->
-      mouseDown = false
-
-    canvas.addEventListener "mouseover", (e) ->
-      mouseDown = false
-
-    canvas.addEventListener "mouseout", (e) ->
-      mouseDown = false
-
-    canvas.addEventListener "mousemove", (e) =>
-      if mouseDown
-        translatePos.x = e.clientX - startDragOffset.x
-        translatePos.y = e.clientY - startDragOffset.y
-        draw scale, translatePos
-
+    # Add zoom handlers
     canvas.addEventListener "mousewheel", (e) =>
       if e.wheelDeltaY > 0
-        scale += 0.1
+        @scale *= @scaleMultiplier
       else
-        scale -= 0.1
+        @scale /= @scaleMultiplier
 
-      draw scale, translatePos
+      console.log @scale
+
+      @draw()
     , false
-    canvas.currentAngle = 0
-    # draw scale, translatePos
+
+    # Add drag handlers
+    canvas.addEventListener "mousedown", (e) =>
+      @mouseDown = true
+      console.log 'start', @translatePos
+      @startDragOffset.x = e.clientX - @translatePos.x
+      @startDragOffset.y = e.clientY - @translatePos.y
+      console.log 'startDragOffset', @startDragOffset
+
+    canvas.addEventListener "mouseup", (e) =>
+      @mouseDown = false
+
+    canvas.addEventListener "mouseover", (e) =>
+      @mouseDown = false
+
+    canvas.addEventListener "mouseout", (e) =>
+      @mouseDown = false
+
+    canvas.addEventListener "mousemove", (e) =>
+      if @mouseDown
+        @translatePos.x = e.clientX - @startDragOffset.x
+        @translatePos.y = e.clientY - @startDragOffset.y
+        @draw()
 
     canvas
 
 
-  loadImage: ->
+  loadImage: (src) ->
     context = @el.getContext '2d'
     image = new Image()
 
     image.onload = (e) =>
       img = e.srcElement
-      # draw cropped image
-      # sourceCropX = 150
-      # sourceCropY = 0
-      # sourceCropWidth = 150
-      # sourceCropHeight = 150
-      # destWidth = sourceCropWidth
-      # destHeight = sourceCropHeight
+      @translatePos =
+        x: img.width / 2
+        y: img.height / 2
+      @draw()
 
-      # Center the image on the canvas
-      # destX = @el.width / 2 - destWidth / 2
-      # destY = @el.height / 2 - destHeight / 2
-
-      context.drawImage image, @el.width / 2 - img.width / 2, @el.height / 2 - img.height / 2
-      # context.drawImage image, sourceCropX, sourceCropY, sourceCropWidth, sourceCropHeight, destX, destY, destWidth, destHeight
-
-    image.src = @settings.src
+    image.src = src || @settings.src
     image
 
 

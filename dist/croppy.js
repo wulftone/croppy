@@ -7,6 +7,11 @@ Canvas = (function() {
     this.settings = this.mergeObj(options, this.defaults);
     this.el = this.createCanvas();
     this.image = this.loadImage();
+    this.currentAngle = 0;
+    this.mouseDown = false;
+    this.scale = 1.0;
+    this.scaleMultiplier = 0.8;
+    this.startDragOffset = {};
   }
 
   Canvas.prototype.mergeObj = function(mergee, merger) {
@@ -26,76 +31,68 @@ Canvas = (function() {
     height: '300'
   };
 
+  Canvas.prototype.draw = function() {
+    var cx;
+    cx = this.el.getContext("2d");
+    cx.clearRect(0, 0, this.el.width, this.el.height);
+    cx.save();
+    cx.translate(this.translatePos.x, this.translatePos.y);
+    cx.scale(this.scale, this.scale);
+    cx.rotate(this.currentAngle * Math.PI / 180);
+    cx.drawImage(this.image, -this.image.width / 2, -this.image.width / 2);
+    return cx.restore();
+  };
+
   Canvas.prototype.createCanvas = function() {
-    var canvas, draw, mouseDown, scale, scaleMultiplier, startDragOffset, translatePos,
+    var canvas,
       _this = this;
-    draw = function(scale, translatePos) {
-      var cx;
-      cx = _this.el.getContext("2d");
-      cx.clearRect(0, 0, _this.el.width, _this.el.height);
-      cx.save();
-      console.log(translatePos);
-      cx.translate(translatePos.x, translatePos.y);
-      cx.scale(scale, scale);
-      cx.rotate(_this.el.currentAngle * Math.PI / 180);
-      cx.drawImage(_this.image, -_this.image.width / 2, -_this.image.width / 2);
-      return cx.restore();
-    };
     canvas = document.createElement('canvas');
     canvas.height = this.settings.height;
     canvas.width = this.settings.width;
-    translatePos = {
-      x: canvas.width / 2,
-      y: canvas.height / 2
-    };
-    scale = 1.0;
-    scaleMultiplier = 0.8;
-    startDragOffset = {};
-    mouseDown = false;
     document.getElementById("plus").addEventListener("click", function() {
-      scale /= scaleMultiplier;
-      return draw(scale, translatePos);
+      _this.currentAngle += 90;
+      return _this.draw();
     }, false);
     document.getElementById("minus").addEventListener("click", function() {
-      scale *= scaleMultiplier;
-      return draw(scale, translatePos);
+      _this.currentAngle -= 90;
+      return _this.draw();
     }, false);
-    canvas.addEventListener("mousedown", function(e) {
-      mouseDown = true;
-      console.log('start', translatePos);
-      startDragOffset.x = e.clientX - translatePos.x;
-      startDragOffset.y = e.clientY - translatePos.y;
-      return console.log('startDragOffset', startDragOffset);
-    });
-    canvas.addEventListener("mouseup", function(e) {
-      return mouseDown = false;
-    });
-    canvas.addEventListener("mouseover", function(e) {
-      return mouseDown = false;
-    });
-    canvas.addEventListener("mouseout", function(e) {
-      return mouseDown = false;
-    });
-    canvas.addEventListener("mousemove", function(e) {
-      if (mouseDown) {
-        translatePos.x = e.clientX - startDragOffset.x;
-        translatePos.y = e.clientY - startDragOffset.y;
-        return draw(scale, translatePos);
-      }
-    });
     canvas.addEventListener("mousewheel", function(e) {
       if (e.wheelDeltaY > 0) {
-        scale += 0.1;
+        _this.scale *= _this.scaleMultiplier;
       } else {
-        scale -= 0.1;
+        _this.scale /= _this.scaleMultiplier;
       }
-      return draw(scale, translatePos);
+      console.log(_this.scale);
+      return _this.draw();
     }, false);
-    canvas.currentAngle = 0;
+    canvas.addEventListener("mousedown", function(e) {
+      _this.mouseDown = true;
+      console.log('start', _this.translatePos);
+      _this.startDragOffset.x = e.clientX - _this.translatePos.x;
+      _this.startDragOffset.y = e.clientY - _this.translatePos.y;
+      return console.log('startDragOffset', _this.startDragOffset);
+    });
+    canvas.addEventListener("mouseup", function(e) {
+      return _this.mouseDown = false;
+    });
+    canvas.addEventListener("mouseover", function(e) {
+      return _this.mouseDown = false;
+    });
+    canvas.addEventListener("mouseout", function(e) {
+      return _this.mouseDown = false;
+    });
+    canvas.addEventListener("mousemove", function(e) {
+      if (_this.mouseDown) {
+        _this.translatePos.x = e.clientX - _this.startDragOffset.x;
+        _this.translatePos.y = e.clientY - _this.startDragOffset.y;
+        return _this.draw();
+      }
+    });
     return canvas;
   };
 
-  Canvas.prototype.loadImage = function() {
+  Canvas.prototype.loadImage = function(src) {
     var context, image,
       _this = this;
     context = this.el.getContext('2d');
@@ -103,9 +100,13 @@ Canvas = (function() {
     image.onload = function(e) {
       var img;
       img = e.srcElement;
-      return context.drawImage(image, _this.el.width / 2 - img.width / 2, _this.el.height / 2 - img.height / 2);
+      _this.translatePos = {
+        x: img.width / 2,
+        y: img.height / 2
+      };
+      return _this.draw();
     };
-    image.src = this.settings.src;
+    image.src = src || this.settings.src;
     return image;
   };
 
