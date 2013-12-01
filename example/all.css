@@ -1,0 +1,22 @@
+#tabs {
+  width: 250px;
+  margin: 0 auto;
+  font-size: 10px
+}
+
+#shapes {
+  height: 300px;
+  overflow-y: scroll;
+}
+
+table {
+  font-size: 12px;
+}
+
+td {
+  padding: 0 12px;
+}
+
+th {
+  cursor: pointer;
+}
