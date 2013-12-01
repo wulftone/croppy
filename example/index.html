@@ -1,14 +1,12 @@
 <link rel='stylesheet' href='all.css' />
-<div id='tabs'>
-  <ul>
-    <li><a href='#shapes'>Shapes</a></li>
-  </ul>
 
-  <div id='shapes'></div>
-</div>
-
+<div id='container'></div>
+<span id='plus'>+</span>
+<span id='minus'>-</span>
 <script type='text/javascript' src="../dist/croppy.js"></script>
 
 <script type='text/javascript'>
-  window.c = new Croppy('container');
+  window.c = new Croppy('container', {
+    src: 'images/darth-vader.jpg'
+  });
 </script>

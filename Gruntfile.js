@@ -39,7 +39,7 @@ module.exports = function(grunt) {
         },
         options: {
           transform: ['coffeeify'],
-          standalone: 'Trickster'
+          standalone: 'Croppy'
         }
       }
     }

@@ -1,3 +1,5 @@
+Canvas = require './canvas.coffee'
+
 ###
 HTML5 canvas crop zoom library
 ###
@@ -5,17 +7,17 @@ class Croppy
 
 
   ###
-  @param  options [Object] A bunch of options
-  @option id      [String] The id of the element to render into.
+  @param id      [String] The id of the element to render into.
+  @param options [Object] A bunch of options
   ###
-  constructor: (options) ->
-    @container = document.getElementById options.id
-    @canvas = createCanvas()
-    render()
+  constructor: (id, options = {}) ->
+    @container = document.getElementById id
+    @canvas = new Canvas(options)
+    @render()
 
 
-render = ->
+  render: ->
+    @container.appendChild @canvas.el
 
 
-createCanvas = ->
-  document.createElement 'canvas'
+module.exports = Croppy
