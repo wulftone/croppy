@@ -2,10 +2,7 @@
   "name": "croppy",
   "version": "0.0.0",
   "description": "A simple HTML5 canvas crop and zoom library",
-  "main": "./src/croppy.js",
-  "scripts": {
-    "test": "mocha"
-  },
+  "main": "./src/croppy.coffee",
   "repository": {
     "type": "git",
     "url": "https://github.com/wulftone/croppy.git"
@@ -19,5 +16,18 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wulftone/croppy/issues"
+  },
+  "devDependencies": {
+    "coffee-script": "latest",
+    "grunt": "latest",
+    "grunt-mocha-test": "latest",
+    "grunt-contrib-watch": "latest",
+    "mocha": "latest",
+    "coffeeify": "latest",
+    "browserify": "latest",
+    "grunt-browserify": "latest"
+  },
+  "scripts": {
+    "test": "mocha"
   }
 }
