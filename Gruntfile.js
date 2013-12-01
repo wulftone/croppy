@@ -35,7 +35,7 @@ module.exports = function(grunt) {
     browserify: {
       dist: {
         files: {
-          'dist/trickster.js': ['src/trickster.coffee'],
+          'dist/croppy.js': ['src/croppy.coffee'],
         },
         options: {
           transform: ['coffeeify'],
