@@ -1,0 +1,23 @@
+{
+  "name": "croppy",
+  "version": "0.0.0",
+  "description": "A simple HTML5 canvas crop and zoom library",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wulftone/croppy.git"
+  },
+  "keywords": [
+    "crop",
+    "zoom",
+    "canvas"
+  ],
+  "author": "wulftone",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wulftone/croppy/issues"
+  }
+}
