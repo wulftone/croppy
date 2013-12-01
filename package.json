@@ -2,7 +2,7 @@
   "name": "croppy",
   "version": "0.0.0",
   "description": "A simple HTML5 canvas crop and zoom library",
-  "main": "index.js",
+  "main": "./src/croppy.js",
   "scripts": {
     "test": "mocha"
   },
