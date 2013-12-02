@@ -124,6 +124,8 @@ class Canvas
       # There may be parts of the image out of view, this is okay.
       # This will change its position, so calculate a correction for
       # the appropriate dimension.
+      #
+      # TODO: The Correction calculation is wrong, it's not exact center, and it should be.
       smallestDimension = if img.width < img.height
         yCorrection = @el.height / 2
         img.width
