@@ -27,7 +27,6 @@ class Canvas
       height: '300'
 
 
-
   draw: ->
     cx = @el.getContext("2d")
 
@@ -118,16 +117,26 @@ class Canvas
 
       console.log 'Image width:', img.width, ', height:', img.height
 
+      xCorrection = 0
+      yCorrection = 0
+
       # Calculate the scale so that the entire image fills the box.
       # There may be parts of the image out of view, this is okay.
-      smallestDimension = if img.width < img.height then img.width else img.height
+      smallestDimension = if img.width < img.height
+        yCorrection = @el.height / 2
+        img.width
+      else
+        xCorrection = @el.width / 2
+        img.height
+
+
       @scale = @el.width / smallestDimension
 
       @translatePos =
         # x: (@el.width  + @scale * img.width)  / 2
         # y: (@el.height + @scale * img.height) / 2
-        x: @scale * img.width  / 2
-        y: @scale * img.height / 2
+        x: (@scale * img.width  - xCorrection) / 2
+        y: (@scale * img.height - yCorrection) / 2
 
       @draw()
 

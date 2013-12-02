@@ -107,14 +107,16 @@ Canvas = (function() {
     context = this.el.getContext('2d');
     image = new Image();
     image.onload = function(e) {
-      var img, smallestDimension;
+      var img, smallestDimension, xCorrection, yCorrection;
       img = e.srcElement;
       console.log('Image width:', img.width, ', height:', img.height);
-      smallestDimension = img.width < img.height ? img.width : img.height;
+      xCorrection = 0;
+      yCorrection = 0;
+      smallestDimension = img.width < img.height ? (yCorrection = _this.el.height / 2, img.width) : (xCorrection = _this.el.width / 2, img.height);
       _this.scale = _this.el.width / smallestDimension;
       _this.translatePos = {
-        x: _this.scale * img.width / 2,
-        y: _this.scale * img.height / 2
+        x: (_this.scale * img.width - xCorrection) / 2,
+        y: (_this.scale * img.height - yCorrection) / 2
       };
       return _this.draw();
     };
