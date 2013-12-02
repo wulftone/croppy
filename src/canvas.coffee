@@ -7,16 +7,19 @@ class Canvas
 
 
   constructor: (options) ->
-    @settings = Util.merge options, @defaults
-    @el       = @createCanvas()
-    @image    = @loadImage()
-
-    # Set state variables
+    @settings        = Util.merge options, @defaults
+    [@cw, @ccw]      = @settings.rot
+    @zoomSlider      = @settings.zoomSlider
     @currentAngle    = 0
     @mouseDown       = false
     @scale           = @settings.scale || 1.0
     @scaleMultiplier = @settings.scaleMultiplier || 0.95
     @startDragOffset = {}
+    # @translatePos  = {} # gets set in loadImage
+
+    # Do these last
+    @el              = @createCanvas()
+    @image           = @loadImage()
 
 
   defaults:
@@ -24,37 +27,45 @@ class Canvas
       height: '300'
 
 
+
   draw: ->
     cx = @el.getContext("2d")
+
     # clear canvas
     cx.clearRect(0, 0, @el.width, @el.height)
 
     cx.save()
 
     console.log 'translatePos:', @translatePos, ', scale:', @scale.toPrecision(2), ', angle:', @currentAngle if @settings.debug
-    cx.translate(@translatePos.x, @translatePos.y)
-    cx.scale(@scale, @scale)
-    cx.rotate(@currentAngle * Math.PI / 180);
 
-    cx.drawImage(@image, -@image.width / 2, -@image.width / 2);
+    cx.translate @translatePos.x, @translatePos.y
+    cx.scale @scale, @scale
+    cx.rotate @currentAngle * Math.PI / 180
+
+    # Draw always with the image as the centerpoint, rotation and all coordinates are relative to that.
+    cx.drawImage @image, -@image.width / 2, -@image.height / 2
+
     cx.restore()
 
 
   createCanvas: ->
-    canvas = document.createElement 'canvas'
+    canvas        = document.createElement 'canvas'
+    canvas.id     = 'croppy-canvas'
     canvas.height = @settings.height
     canvas.width  = @settings.width
 
     # Add rotation handlers
-    document.getElementById("plus").addEventListener "click", =>
-      @currentAngle += 90
-      @draw()
-    , false
+    if @cw
+      @cw.addEventListener "click", =>
+        @currentAngle += 90
+        @draw()
+      , false
 
-    document.getElementById("minus").addEventListener "click", =>
-      @currentAngle -= 90
-      @draw()
-    , false
+    if @ccw
+      @ccw.addEventListener "click", =>
+        @currentAngle -= 90
+        @draw()
+      , false
 
     # Add zoom handlers
     canvas.addEventListener "mousewheel", (e) =>
@@ -65,6 +76,14 @@ class Canvas
 
       @draw()
     , false
+
+    if @slider
+      @slider.addEventListener 'change', (e) =>
+        scale *= @scaleMultiplier
+        scale /= @scaleMultiplier
+
+        @draw()
+      , false
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
@@ -97,11 +116,18 @@ class Canvas
     image.onload = (e) =>
       img = e.srcElement
 
-      console.log img.width, img.height
+      console.log 'Image width:', img.width, ', height:', img.height
+
+      # Calculate the scale so that the entire image fills the box.
+      # There may be parts of the image out of view, this is okay.
+      smallestDimension = if img.width < img.height then img.width else img.height
+      @scale = @el.width / smallestDimension
 
       @translatePos =
-        x: img.width / 2
-        y: img.width / 2
+        # x: (@el.width  + @scale * img.width)  / 2
+        # y: (@el.height + @scale * img.height) / 2
+        x: @scale * img.width  / 2
+        y: @scale * img.height / 2
 
       @draw()
 

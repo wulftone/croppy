@@ -1,3 +1,7 @@
 canvas {
   background: darkviolet;
 }
+body {
+  font-size: 20px;
+  text-align: center
+}

@@ -10,14 +10,17 @@ TODO: give @translatePos a reasonable starting point
 
 Canvas = (function() {
   function Canvas(options) {
+    var _ref;
     this.settings = Util.merge(options, this.defaults);
-    this.el = this.createCanvas();
-    this.image = this.loadImage();
+    _ref = this.settings.rot, this.cw = _ref[0], this.ccw = _ref[1];
+    this.zoomSlider = this.settings.zoomSlider;
     this.currentAngle = 0;
     this.mouseDown = false;
     this.scale = this.settings.scale || 1.0;
     this.scaleMultiplier = this.settings.scaleMultiplier || 0.95;
     this.startDragOffset = {};
+    this.el = this.createCanvas();
+    this.image = this.loadImage();
   }
 
   Canvas.prototype.defaults = {
@@ -36,7 +39,7 @@ Canvas = (function() {
     cx.translate(this.translatePos.x, this.translatePos.y);
     cx.scale(this.scale, this.scale);
     cx.rotate(this.currentAngle * Math.PI / 180);
-    cx.drawImage(this.image, -this.image.width / 2, -this.image.width / 2);
+    cx.drawImage(this.image, -this.image.width / 2, -this.image.height / 2);
     return cx.restore();
   };
 
@@ -44,16 +47,21 @@ Canvas = (function() {
     var canvas,
       _this = this;
     canvas = document.createElement('canvas');
+    canvas.id = 'croppy-canvas';
     canvas.height = this.settings.height;
     canvas.width = this.settings.width;
-    document.getElementById("plus").addEventListener("click", function() {
-      _this.currentAngle += 90;
-      return _this.draw();
-    }, false);
-    document.getElementById("minus").addEventListener("click", function() {
-      _this.currentAngle -= 90;
-      return _this.draw();
-    }, false);
+    if (this.cw) {
+      this.cw.addEventListener("click", function() {
+        _this.currentAngle += 90;
+        return _this.draw();
+      }, false);
+    }
+    if (this.ccw) {
+      this.ccw.addEventListener("click", function() {
+        _this.currentAngle -= 90;
+        return _this.draw();
+      }, false);
+    }
     canvas.addEventListener("mousewheel", function(e) {
       if (e.wheelDeltaY > 0) {
         _this.scale *= _this.scaleMultiplier;
@@ -62,6 +70,13 @@ Canvas = (function() {
       }
       return _this.draw();
     }, false);
+    if (this.slider) {
+      this.slider.addEventListener('change', function(e) {
+        scale *= _this.scaleMultiplier;
+        scale /= _this.scaleMultiplier;
+        return _this.draw();
+      }, false);
+    }
     canvas.addEventListener("mousedown", function(e) {
       _this.mouseDown = true;
       _this.startDragOffset.x = e.clientX - _this.translatePos.x;
@@ -92,12 +107,14 @@ Canvas = (function() {
     context = this.el.getContext('2d');
     image = new Image();
     image.onload = function(e) {
-      var img;
+      var img, smallestDimension;
       img = e.srcElement;
-      console.log(img.width, img.height);
+      console.log('Image width:', img.width, ', height:', img.height);
+      smallestDimension = img.width < img.height ? img.width : img.height;
+      _this.scale = _this.el.width / smallestDimension;
       _this.translatePos = {
-        x: img.width / 2,
-        y: img.width / 2
+        x: _this.scale * img.width / 2,
+        y: _this.scale * img.height / 2
       };
       return _this.draw();
     };
@@ -135,8 +152,10 @@ Croppy = (function() {
       options = {};
     }
     this.settings = Util.merge(options, this.defaults);
+    this.settings.rot = this.createRotationButtons();
+    this.settings.zoomSlider = this.createZoomSlider();
     this.container = document.getElementById(id);
-    this.canvas = new Canvas(options);
+    this.canvas = new Canvas(this.settings);
     this.canvas.id = 'croppy-canvas';
     this.cropOverlay = this.createCropOverlay();
     this.render();
@@ -165,9 +184,54 @@ Croppy = (function() {
     return overlay;
   };
 
+  Croppy.prototype.createRotationButtons = function() {
+    var ccw, cw;
+    cw = document.createElement('span');
+    cw.id = 'croppy-rot-cw';
+    cw.innerText = '↻';
+    ccw = document.createElement('span');
+    ccw.id = 'croppy-rot-ccw';
+    ccw.innerText = '↺';
+    return [cw, ccw];
+  };
+
+  Croppy.prototype.createZoomSlider = function() {
+    var slider;
+    slider = document.createElement('input');
+    slider.type = 'range';
+    slider.id = 'croppy-zoom-slider';
+    return slider;
+  };
+
+  Croppy.prototype.createCroppyEl = function() {
+    var croppyEl;
+    croppyEl = document.createElement('div');
+    croppyEl.id = 'croppy';
+    croppyEl.style.position = 'relative';
+    croppyEl.style.width = this.settings.width;
+    croppyEl.style.height = this.settings.height;
+    croppyEl.style.margin = '0 auto';
+    croppyEl.appendChild(this.canvas.el);
+    croppyEl.appendChild(this.cropOverlay);
+    return croppyEl;
+  };
+
+  Croppy.prototype.createRotDiv = function() {
+    var rotDiv;
+    rotDiv = document.createElement('div');
+    rotDiv.id = 'croppy-rot';
+    return rotDiv;
+  };
+
   Croppy.prototype.render = function() {
-    this.container.appendChild(this.canvas.el);
-    return this.container.appendChild(this.cropOverlay);
+    var rotDiv;
+    this.el = this.createCroppyEl();
+    rotDiv = this.createRotDiv();
+    rotDiv.appendChild(this.canvas.cw);
+    rotDiv.appendChild(this.canvas.ccw);
+    this.el.appendChild(rotDiv);
+    this.el.appendChild(this.canvas.zoomSlider);
+    return this.container.appendChild(this.el);
   };
 
   return Croppy;

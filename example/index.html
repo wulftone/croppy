@@ -1,13 +1,18 @@
-<link rel='stylesheet' href='all.css' />
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel='stylesheet' href='all.css' />
+</head>
+<body>
 
-<div id='container'></div>
-<span id='plus'>+</span>
-<span id='minus'>-</span>
-<script type='text/javascript' src="../dist/croppy.js"></script>
+  <div id='container'></div>
 
-<script type='text/javascript'>
-  window.c = new Croppy('container', {
-    src: 'images/darth-vader.jpg',
-    debug: true
-  });
-</script>
+  <script type='text/javascript' src="../dist/croppy.js"></script>
+  <script type='text/javascript'>
+    window.c = new Croppy('container', {
+      // src: 'images/phinney.jpg',
+      src: 'images/darth-vader.jpg',
+      debug: true
+    });
+  </script>
+
+</body>
