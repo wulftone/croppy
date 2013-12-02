@@ -76,11 +76,10 @@ class Canvas
       @draw()
     , false
 
-    if @slider
-      @slider.addEventListener 'change', (e) =>
-        scale *= @scaleMultiplier
-        scale /= @scaleMultiplier
-
+    if @zoomSlider
+      @zoomSlider.addEventListener 'change', (e) =>
+        # TODO: Make this a better scale
+        @scale = e.target.value / 100
         @draw()
       , false
 
@@ -135,6 +134,9 @@ class Canvas
 
 
       @scale = @el.width / smallestDimension
+
+      # TODO: Make this a better scale
+      @zoomSlider.value = @scale * 100
 
       @translatePos =
         # x: (@el.width  + @scale * img.width)  / 2

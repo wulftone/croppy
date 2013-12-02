@@ -70,10 +70,9 @@ Canvas = (function() {
       }
       return _this.draw();
     }, false);
-    if (this.slider) {
-      this.slider.addEventListener('change', function(e) {
-        scale *= _this.scaleMultiplier;
-        scale /= _this.scaleMultiplier;
+    if (this.zoomSlider) {
+      this.zoomSlider.addEventListener('change', function(e) {
+        _this.scale = e.target.value / 100;
         return _this.draw();
       }, false);
     }
@@ -114,6 +113,7 @@ Canvas = (function() {
       yCorrection = 0;
       smallestDimension = img.width < img.height ? (yCorrection = _this.el.height / 2, img.width) : (xCorrection = _this.el.width / 2, img.height);
       _this.scale = _this.el.width / smallestDimension;
+      _this.zoomSlider.value = _this.scale * 100;
       _this.translatePos = {
         x: (_this.scale * img.width - xCorrection) / 2,
         y: (_this.scale * img.height - yCorrection) / 2
