@@ -25,7 +25,7 @@ module.exports = function(grunt) {
         tasks: ['mochaTest', 'browserify'],
       },
       example: {
-        files: ['dist/*.js', 'example/*.html', 'Gruntfile.js'],
+        files: ['dist/*.js', 'example/*.html', 'example/**/*.css', 'Gruntfile.js'],
         options: {
           livereload: true
         }

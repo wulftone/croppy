@@ -1,30 +1,24 @@
 !function(e){"object"==typeof exports?module.exports=e():"function"==typeof define&&define.amd?define(e):"undefined"!=typeof window?window.Croppy=e():"undefined"!=typeof global?global.Croppy=e():"undefined"!=typeof self&&(self.Croppy=e())}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var Canvas,
-  __hasProp = {}.hasOwnProperty;
+var Canvas, Util;
+
+Util = require('./util.coffee');
+
+/*
+TODO: give @translatePos a reasonable starting point
+*/
+
 
 Canvas = (function() {
   function Canvas(options) {
-    this.settings = this.mergeObj(options, this.defaults);
+    this.settings = Util.merge(options, this.defaults);
     this.el = this.createCanvas();
     this.image = this.loadImage();
     this.currentAngle = 0;
     this.mouseDown = false;
-    this.scale = 1.0;
-    this.scaleMultiplier = 0.8;
+    this.scale = this.settings.scale || 1.0;
+    this.scaleMultiplier = this.settings.scaleMultiplier || 0.95;
     this.startDragOffset = {};
   }
-
-  Canvas.prototype.mergeObj = function(mergee, merger) {
-    var k, v;
-    for (k in merger) {
-      if (!__hasProp.call(merger, k)) continue;
-      v = merger[k];
-      if (!mergee.hasOwnProperty(k)) {
-        mergee[k] = v;
-      }
-    }
-    return mergee;
-  };
 
   Canvas.prototype.defaults = {
     width: '300',
@@ -36,6 +30,9 @@ Canvas = (function() {
     cx = this.el.getContext("2d");
     cx.clearRect(0, 0, this.el.width, this.el.height);
     cx.save();
+    if (this.settings.debug) {
+      console.log('translatePos:', this.translatePos, ', scale:', this.scale.toPrecision(2), ', angle:', this.currentAngle);
+    }
     cx.translate(this.translatePos.x, this.translatePos.y);
     cx.scale(this.scale, this.scale);
     cx.rotate(this.currentAngle * Math.PI / 180);
@@ -63,15 +60,12 @@ Canvas = (function() {
       } else {
         _this.scale /= _this.scaleMultiplier;
       }
-      console.log(_this.scale);
       return _this.draw();
     }, false);
     canvas.addEventListener("mousedown", function(e) {
       _this.mouseDown = true;
-      console.log('start', _this.translatePos);
       _this.startDragOffset.x = e.clientX - _this.translatePos.x;
-      _this.startDragOffset.y = e.clientY - _this.translatePos.y;
-      return console.log('startDragOffset', _this.startDragOffset);
+      return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
     });
     canvas.addEventListener("mouseup", function(e) {
       return _this.mouseDown = false;
@@ -100,9 +94,10 @@ Canvas = (function() {
     image.onload = function(e) {
       var img;
       img = e.srcElement;
+      console.log(img.width, img.height);
       _this.translatePos = {
         x: img.width / 2,
-        y: img.height / 2
+        y: img.width / 2
       };
       return _this.draw();
     };
@@ -117,8 +112,10 @@ Canvas = (function() {
 module.exports = Canvas;
 
 
-},{}],2:[function(require,module,exports){
-var Canvas, Croppy;
+},{"./util.coffee":3}],2:[function(require,module,exports){
+var Canvas, Croppy, Util;
+
+Util = require('./util.coffee');
 
 Canvas = require('./canvas.coffee');
 
@@ -137,13 +134,40 @@ Croppy = (function() {
     if (options == null) {
       options = {};
     }
+    this.settings = Util.merge(options, this.defaults);
     this.container = document.getElementById(id);
     this.canvas = new Canvas(options);
+    this.canvas.id = 'croppy-canvas';
+    this.cropOverlay = this.createCropOverlay();
     this.render();
   }
 
+  Croppy.prototype.defaults = {
+    cropWidth: '150px',
+    cropHeight: '150px',
+    cropBorder: '2px solid orange',
+    cropTop: '75px',
+    cropLeft: '75px'
+  };
+
+  Croppy.prototype.createCropOverlay = function() {
+    var overlay, style;
+    overlay = document.createElement('div');
+    overlay.id = 'croppy-crop-area';
+    style = overlay.style;
+    style.width = this.settings.cropWidth;
+    style.height = this.settings.cropHeight;
+    style.border = this.settings.cropBorder;
+    style.top = this.settings.cropTop;
+    style.left = this.settings.cropLeft;
+    style.position = 'absolute';
+    style.pointerEvents = 'none';
+    return overlay;
+  };
+
   Croppy.prototype.render = function() {
-    return this.container.appendChild(this.canvas.el);
+    this.container.appendChild(this.canvas.el);
+    return this.container.appendChild(this.cropOverlay);
   };
 
   return Croppy;
@@ -153,7 +177,33 @@ Croppy = (function() {
 module.exports = Croppy;
 
 
-},{"./canvas.coffee":1}]},{},[2])
+},{"./canvas.coffee":1,"./util.coffee":3}],3:[function(require,module,exports){
+var Util,
+  __hasProp = {}.hasOwnProperty;
+
+Util = (function() {
+  function Util() {}
+
+  Util.merge = function(mergee, merger) {
+    var k, v;
+    for (k in merger) {
+      if (!__hasProp.call(merger, k)) continue;
+      v = merger[k];
+      if (!mergee.hasOwnProperty(k)) {
+        mergee[k] = v;
+      }
+    }
+    return mergee;
+  };
+
+  return Util;
+
+})();
+
+module.exports = Util;
+
+
+},{}]},{},[2])
 (2)
 });
 ;
