@@ -122,6 +122,8 @@ class Canvas
 
       # Calculate the scale so that the entire image fills the box.
       # There may be parts of the image out of view, this is okay.
+      # This will change its position, so calculate a correction for
+      # the appropriate dimension.
       smallestDimension = if img.width < img.height
         yCorrection = @el.height / 2
         img.width
