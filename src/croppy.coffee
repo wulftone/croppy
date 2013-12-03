@@ -46,14 +46,26 @@ class Croppy
     overlay
 
 
+  makeUnselectable: (el) ->
+    s = el.style
+    s['-webkit-touch-callout'] = 'none'
+    s['-webkit-user-select']   = 'none'
+    s['-khtml-user-select']    = 'none'
+    s['-moz-user-select']      = 'none'
+    s['-ms-user-select']       = 'none'
+    s['user-select']           = 'none'
+
+
   createRotationButtons: ->
     cw            = document.createElement 'span'
     cw.id         = 'croppy-rot-cw'
     cw.innerText  = '↻'
+    @makeUnselectable cw
 
     ccw           = document.createElement 'span'
     ccw.id        = 'croppy-rot-ccw'
     ccw.innerText = '↺'
+    @makeUnselectable ccw
 
     [cw, ccw]
 
@@ -62,6 +74,9 @@ class Croppy
     slider      = document.createElement 'input'
     slider.type = 'range'
     slider.id   = 'croppy-zoom-slider'
+    slider.min  = 1
+    slider.max  = 1000
+    slider.step = 1
     slider
 
 
