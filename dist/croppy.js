@@ -68,11 +68,12 @@ Canvas = (function() {
       } else {
         _this.scale /= _this.scaleMultiplier;
       }
+      _this.updateZoomSlider();
       return _this.draw();
     }, false);
     if (this.zoomSlider) {
       this.zoomSlider.addEventListener('change', function(e) {
-        _this.scale = e.target.value / 100;
+        _this.scale = _this.convertSliderToScale(e.target.value);
         return _this.draw();
       }, false);
     }
@@ -100,6 +101,13 @@ Canvas = (function() {
     return canvas;
   };
 
+  /*
+  Loads an image onto the canvas
+  
+  @param src [String] The location (href) of the image source
+  */
+
+
   Canvas.prototype.loadImage = function(src) {
     var context, image,
       _this = this;
@@ -113,7 +121,7 @@ Canvas = (function() {
       yCorrection = 0;
       smallestDimension = img.width < img.height ? (yCorrection = _this.el.height / 2, img.width) : (xCorrection = _this.el.width / 2, img.height);
       _this.scale = _this.el.width / smallestDimension;
-      _this.zoomSlider.value = _this.scale * 100;
+      _this.updateZoomSlider();
       _this.translatePos = {
         x: (_this.scale * img.width - xCorrection) / 2,
         y: (_this.scale * img.height - yCorrection) / 2
@@ -122,6 +130,35 @@ Canvas = (function() {
     };
     image.src = src || this.settings.src;
     return image;
+  };
+
+  /*
+  Sets the zoomSlider value to the correct spot
+  */
+
+
+  Canvas.prototype.updateZoomSlider = function(value) {
+    return this.zoomSlider.value = this.convertScaleToSlider(value || this.scale);
+  };
+
+  /*
+  Inverse of {convertScaleToSlider}.
+  
+  TODO: Make this a better scale
+  */
+
+
+  Canvas.prototype.convertSliderToScale = function(y) {
+    return y / 1000;
+  };
+
+  /*
+  Inverse of {convertSliderToScale}
+  */
+
+
+  Canvas.prototype.convertScaleToSlider = function(x) {
+    return x * 1000;
   };
 
   return Canvas;
@@ -186,14 +223,27 @@ Croppy = (function() {
     return overlay;
   };
 
+  Croppy.prototype.makeUnselectable = function(el) {
+    var s;
+    s = el.style;
+    s['-webkit-touch-callout'] = 'none';
+    s['-webkit-user-select'] = 'none';
+    s['-khtml-user-select'] = 'none';
+    s['-moz-user-select'] = 'none';
+    s['-ms-user-select'] = 'none';
+    return s['user-select'] = 'none';
+  };
+
   Croppy.prototype.createRotationButtons = function() {
     var ccw, cw;
     cw = document.createElement('span');
     cw.id = 'croppy-rot-cw';
     cw.innerText = '↻';
+    this.makeUnselectable(cw);
     ccw = document.createElement('span');
     ccw.id = 'croppy-rot-ccw';
     ccw.innerText = '↺';
+    this.makeUnselectable(ccw);
     return [cw, ccw];
   };
 
@@ -202,6 +252,9 @@ Croppy = (function() {
     slider = document.createElement('input');
     slider.type = 'range';
     slider.id = 'croppy-zoom-slider';
+    slider.min = 1;
+    slider.max = 1000;
+    slider.step = 1;
     return slider;
   };
 

@@ -73,13 +73,13 @@ class Canvas
       else
         @scale /= @scaleMultiplier
 
+      @updateZoomSlider()
       @draw()
     , false
 
     if @zoomSlider
       @zoomSlider.addEventListener 'change', (e) =>
-        # TODO: Make this a better scale
-        @scale = e.target.value / 100
+        @scale = @convertSliderToScale e.target.value
         @draw()
       , false
 
@@ -107,6 +107,11 @@ class Canvas
     canvas
 
 
+  ###
+  Loads an image onto the canvas
+
+  @param src [String] The location (href) of the image source
+  ###
   loadImage: (src) ->
     context = @el.getContext '2d'
     image   = new Image()
@@ -135,12 +140,9 @@ class Canvas
 
       @scale = @el.width / smallestDimension
 
-      # TODO: Make this a better scale
-      @zoomSlider.value = @scale * 100
+      @updateZoomSlider()
 
       @translatePos =
-        # x: (@el.width  + @scale * img.width)  / 2
-        # y: (@el.height + @scale * img.height) / 2
         x: (@scale * img.width  - xCorrection) / 2
         y: (@scale * img.height - yCorrection) / 2
 
@@ -148,6 +150,29 @@ class Canvas
 
     image.src = src || @settings.src
     image
+
+
+  ###
+  Sets the zoomSlider value to the correct spot
+  ###
+  updateZoomSlider: (value) ->
+    @zoomSlider.value = @convertScaleToSlider(value || @scale)
+
+
+  ###
+  Inverse of {convertScaleToSlider}.
+
+  TODO: Make this a better scale
+  ###
+  convertSliderToScale: (y) ->
+    y / 1000
+
+
+  ###
+  Inverse of {convertSliderToScale}
+  ###
+  convertScaleToSlider: (x) ->
+    x * 1000
 
 
 module.exports = Canvas
