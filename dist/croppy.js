@@ -10,14 +10,14 @@ TODO: give @translatePos a reasonable starting point
 
 Canvas = (function() {
   function Canvas(options) {
-    var _ref;
+    var _ref, _ref1;
     this.settings = Util.merge(options, this.defaults);
     _ref = this.settings.rot, this.cw = _ref[0], this.ccw = _ref[1];
-    this.zoomSlider = this.settings.zoomSlider;
-    this.currentAngle = 0;
+    _ref1 = this.settings.zoomButtons, this.zoomPlus = _ref1[0], this.zoomMinus = _ref1[1];
+    this.currentAngle = this.settings.currentAngle;
+    this.scaleMultiplier = this.settings.scaleMultiplier;
+    this.mousewheelZoom = this.settings.mousewheelZoom;
     this.mouseDown = false;
-    this.scale = this.settings.scale || 1.0;
-    this.scaleMultiplier = this.settings.scaleMultiplier || 0.95;
     this.startDragOffset = {};
     this.el = this.createCanvas();
     this.image = this.loadImage();
@@ -25,8 +25,17 @@ Canvas = (function() {
 
   Canvas.prototype.defaults = {
     width: '300',
-    height: '300'
+    height: '300',
+    scaleMultiplier: 1.05,
+    currentAngle: 0,
+    mousewheelZoom: true
   };
+
+  /*
+  Do the actual drawing on the canvas.  Image is drawn with `@translatePos` as the
+  image's centerpoint.  The `@scale` is relative to the image's natural size.
+  */
+
 
   Canvas.prototype.draw = function() {
     var cx;
@@ -34,9 +43,9 @@ Canvas = (function() {
     cx.clearRect(0, 0, this.el.width, this.el.height);
     cx.save();
     if (this.settings.debug) {
-      console.log('translatePos:', this.translatePos, ', scale:', this.scale.toPrecision(2), ', angle:', this.currentAngle);
+      console.log('translatePos:', this.translatePos, ', scale:', parseFloat(this.scale.toPrecision(2)), ', angle:', this.currentAngle);
     }
-    cx.translate(this.translatePos.x, this.translatePos.y);
+    cx.translate(this.translatePos.x + this.el.width / 2, this.translatePos.y + this.el.height / 2);
     cx.scale(this.scale, this.scale);
     cx.rotate(this.currentAngle * Math.PI / 180);
     cx.drawImage(this.image, -this.image.width / 2, -this.image.height / 2);
@@ -44,61 +53,114 @@ Canvas = (function() {
   };
 
   Canvas.prototype.createCanvas = function() {
-    var canvas,
+    var canvas, rotateCCW, rotateCW, zoomIn, zoomOut, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
     canvas.height = this.settings.height;
     canvas.width = this.settings.width;
     if (this.cw) {
-      this.cw.addEventListener("click", function() {
+      rotateCW = function() {
         _this.currentAngle += 90;
         return _this.draw();
-      }, false);
+      };
     }
     if (this.ccw) {
-      this.ccw.addEventListener("click", function() {
+      rotateCCW = function() {
         _this.currentAngle -= 90;
         return _this.draw();
+      };
+    }
+    if (this.cw) {
+      this.cw.addEventListener("click", rotateCW, false);
+    }
+    if (this.ccw) {
+      this.ccw.addEventListener("click", rotateCCW, false);
+    }
+    if (this.zoomPlus || this.mousewheelZoom) {
+      zoomIn = function() {
+        _this.scale *= _this.scaleMultiplier;
+        return _this.draw();
+      };
+    }
+    if (this.zoomMinus || this.mousewheelZoom) {
+      zoomOut = function() {
+        _this.scale /= _this.scaleMultiplier;
+        return _this.draw();
+      };
+    }
+    if (this.mousewheelZoom) {
+      canvas.addEventListener("mousewheel", function(e) {
+        if (e.wheelDeltaY > 0) {
+          return zoomIn();
+        } else {
+          return zoomOut();
+        }
       }, false);
     }
-    canvas.addEventListener("mousewheel", function(e) {
-      if (e.wheelDeltaY > 0) {
-        _this.scale *= _this.scaleMultiplier;
-      } else {
-        _this.scale /= _this.scaleMultiplier;
-      }
-      _this.updateZoomSlider();
-      return _this.draw();
-    }, false);
-    if (this.zoomSlider) {
-      this.zoomSlider.addEventListener('change', function(e) {
-        _this.scale = _this.convertSliderToScale(e.target.value);
-        return _this.draw();
+    if (this.zoomPlus || this.zoomMinus) {
+      zooming = function(fn) {
+        _this.mouseDown = true;
+        return _this.mouseDownIntervalId = setInterval(fn, 50);
+      };
+    }
+    if (this.zoomPlus) {
+      this.zoomPlus.addEventListener('mousedown', function() {
+        return zooming(zoomIn);
+      }, false);
+      this.zoomPlus.addEventListener('mouseup', function() {
+        _this.mouseDown = false;
+        return clearInterval(_this.mouseDownIntervalId);
+      }, false);
+    }
+    if (this.zoomMinus) {
+      this.zoomMinus.addEventListener('mousedown', function() {
+        return zooming(zoomOut);
+      }, false);
+      this.zoomMinus.addEventListener('mouseup', function() {
+        _this.mouseDown = false;
+        return clearInterval(_this.mouseDownIntervalId);
       }, false);
     }
     canvas.addEventListener("mousedown", function(e) {
-      _this.mouseDown = true;
+      _this.mouseDrag(true);
       _this.startDragOffset.x = e.clientX - _this.translatePos.x;
       return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
     });
     canvas.addEventListener("mouseup", function(e) {
-      return _this.mouseDown = false;
+      return _this.mouseDrag(false);
     });
     canvas.addEventListener("mouseover", function(e) {
-      return _this.mouseDown = false;
+      return _this.mouseDrag(false);
     });
     canvas.addEventListener("mouseout", function(e) {
-      return _this.mouseDown = false;
+      return _this.mouseDrag(false, 'initial');
     });
     canvas.addEventListener("mousemove", function(e) {
       if (_this.mouseDown) {
+        _this.mouseDrag(true);
         _this.translatePos.x = e.clientX - _this.startDragOffset.x;
         _this.translatePos.y = e.clientY - _this.startDragOffset.y;
         return _this.draw();
       }
     });
     return canvas;
+  };
+
+  /*
+  Sets the `@mouseDown` state and the cursor CSS
+  
+  @param dragging [Boolean] Whether or not we should be considered currently 'dragging'
+  @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
+  */
+
+
+  Canvas.prototype.mouseDrag = function(dragging, cursor) {
+    if (this.mouseDown = dragging) {
+      return this.el.style.cursor = cursor || 'move';
+    } else {
+      return this.el.style.cursor = cursor || 'pointer';
+    }
   };
 
   /*
@@ -109,56 +171,28 @@ Canvas = (function() {
 
 
   Canvas.prototype.loadImage = function(src) {
-    var context, image,
+    var context,
       _this = this;
     context = this.el.getContext('2d');
-    image = new Image();
-    image.onload = function(e) {
+    this.image = new Image();
+    this.image.onload = function(e) {
       var img, smallestDimension, xCorrection, yCorrection;
       img = e.srcElement;
-      console.log('Image width:', img.width, ', height:', img.height);
+      if (_this.settings.debug) {
+        console.log('Image width:', img.width, ', height:', img.height);
+      }
       xCorrection = 0;
       yCorrection = 0;
-      smallestDimension = img.width < img.height ? (yCorrection = _this.el.height / 2, img.width) : (xCorrection = _this.el.width / 2, img.height);
-      _this.scale = _this.el.width / smallestDimension;
-      _this.updateZoomSlider();
+      smallestDimension = img.width < img.height ? img.width : img.height;
+      _this.scale || (_this.scale = _this.el.width / smallestDimension);
       _this.translatePos = {
-        x: (_this.scale * img.width - xCorrection) / 2,
-        y: (_this.scale * img.height - yCorrection) / 2
+        x: 0,
+        y: 0
       };
       return _this.draw();
     };
-    image.src = src || this.settings.src;
-    return image;
-  };
-
-  /*
-  Sets the zoomSlider value to the correct spot
-  */
-
-
-  Canvas.prototype.updateZoomSlider = function(value) {
-    return this.zoomSlider.value = this.convertScaleToSlider(value || this.scale);
-  };
-
-  /*
-  Inverse of {convertScaleToSlider}.
-  
-  TODO: Make this a better scale
-  */
-
-
-  Canvas.prototype.convertSliderToScale = function(y) {
-    return y / 1000;
-  };
-
-  /*
-  Inverse of {convertSliderToScale}
-  */
-
-
-  Canvas.prototype.convertScaleToSlider = function(x) {
-    return x * 1000;
+    this.image.src = src || this.settings.src;
+    return this.image;
   };
 
   return Canvas;
@@ -169,7 +203,7 @@ module.exports = Canvas;
 
 
 },{"./util.coffee":3}],2:[function(require,module,exports){
-var Canvas, Croppy, Util;
+var Canvas, Croppy, Util, createCropOverlay, createCroppyEl, createRotDiv, createRotationButtons, createZoomButtons, createZoomDiv, makeUnselectable;
 
 Util = require('./util.coffee');
 
@@ -179,6 +213,93 @@ Canvas = require('./canvas.coffee');
 HTML5 canvas crop zoom library
 */
 
+
+createCropOverlay = function(settings) {
+  var overlay, style;
+  overlay = document.createElement('div');
+  overlay.id = 'croppy-crop-area';
+  style = overlay.style;
+  style.width = settings.cropWidth;
+  style.height = settings.cropHeight;
+  style.border = settings.cropBorder;
+  style.top = "" + (parseInt(settings.cropTop) - parseInt(style.borderLeftWidth)) + "px";
+  style.left = "" + (parseInt(settings.cropLeft) - parseInt(style.borderTopWidth)) + "px";
+  style.position = 'absolute';
+  style.pointerEvents = 'none';
+  return overlay;
+};
+
+makeUnselectable = function(el) {
+  var s;
+  s = el.style;
+  s['-webkit-touch-callout'] = 'none';
+  s['-webkit-user-select'] = 'none';
+  s['-khtml-user-select'] = 'none';
+  s['-moz-user-select'] = 'none';
+  s['-ms-user-select'] = 'none';
+  return s['user-select'] = 'none';
+};
+
+createRotationButtons = function() {
+  var ccw, cw;
+  cw = document.createElement('span');
+  cw.id = 'croppy-rot-cw';
+  cw.innerText = '↻';
+  cw.style.cursor = 'pointer';
+  makeUnselectable(cw);
+  ccw = document.createElement('span');
+  ccw.id = 'croppy-rot-ccw';
+  ccw.innerText = '↺';
+  ccw.style.cursor = 'pointer';
+  makeUnselectable(ccw);
+  return [cw, ccw];
+};
+
+createZoomButtons = function() {
+  var minus, plus;
+  plus = document.createElement('span');
+  plus.id = 'croppy-zoom-plus';
+  plus.innerText = 'In';
+  plus.style.cursor = 'pointer';
+  makeUnselectable(plus);
+  minus = document.createElement('span');
+  minus.id = 'croppy-zoom-minus';
+  minus.innerText = 'Out';
+  minus.style.cursor = 'pointer';
+  makeUnselectable(minus);
+  return [plus, minus];
+};
+
+createCroppyEl = function(canvas, cropOverlay, settings) {
+  var croppyEl;
+  croppyEl = document.createElement('div');
+  croppyEl.id = 'croppy';
+  croppyEl.style.position = 'relative';
+  croppyEl.style.width = settings.width;
+  croppyEl.style.height = settings.height;
+  croppyEl.style.margin = '0 auto';
+  croppyEl.appendChild(canvas.el);
+  croppyEl.appendChild(cropOverlay);
+  return croppyEl;
+};
+
+createRotDiv = function(canvas) {
+  var rotDiv;
+  rotDiv = document.createElement('div');
+  rotDiv.id = 'croppy-rot-buttons';
+  rotDiv.appendChild(canvas.cw);
+  rotDiv.appendChild(canvas.ccw);
+  return rotDiv;
+};
+
+createZoomDiv = function(canvas) {
+  var zoomDiv;
+  zoomDiv = document.createElement('div');
+  zoomDiv.id = 'croppy-zoom-buttons';
+  zoomDiv.appendChild(canvas.zoomPlus);
+  zoomDiv.appendChild(canvas.zoomMinus);
+  return zoomDiv;
+};
 
 Croppy = (function() {
   /*
@@ -190,103 +311,66 @@ Croppy = (function() {
     if (options == null) {
       options = {};
     }
-    this.settings = Util.merge(options, this.defaults);
-    this.settings.rot = this.createRotationButtons();
-    this.settings.zoomSlider = this.createZoomSlider();
+    this.settings = Util.merge(options, this.defaults());
     this.container = document.getElementById(id);
     this.canvas = new Canvas(this.settings);
     this.canvas.id = 'croppy-canvas';
-    this.cropOverlay = this.createCropOverlay();
+    this.cropOverlay = createCropOverlay(this.settings);
     this.render();
   }
 
-  Croppy.prototype.defaults = {
-    cropWidth: '150px',
-    cropHeight: '150px',
-    cropBorder: '2px solid orange',
-    cropTop: '75px',
-    cropLeft: '75px'
-  };
-
-  Croppy.prototype.createCropOverlay = function() {
-    var overlay, style;
-    overlay = document.createElement('div');
-    overlay.id = 'croppy-crop-area';
-    style = overlay.style;
-    style.width = this.settings.cropWidth;
-    style.height = this.settings.cropHeight;
-    style.border = this.settings.cropBorder;
-    style.top = this.settings.cropTop;
-    style.left = this.settings.cropLeft;
-    style.position = 'absolute';
-    style.pointerEvents = 'none';
-    return overlay;
-  };
-
-  Croppy.prototype.makeUnselectable = function(el) {
-    var s;
-    s = el.style;
-    s['-webkit-touch-callout'] = 'none';
-    s['-webkit-user-select'] = 'none';
-    s['-khtml-user-select'] = 'none';
-    s['-moz-user-select'] = 'none';
-    s['-ms-user-select'] = 'none';
-    return s['user-select'] = 'none';
-  };
-
-  Croppy.prototype.createRotationButtons = function() {
-    var ccw, cw;
-    cw = document.createElement('span');
-    cw.id = 'croppy-rot-cw';
-    cw.innerText = '↻';
-    this.makeUnselectable(cw);
-    ccw = document.createElement('span');
-    ccw.id = 'croppy-rot-ccw';
-    ccw.innerText = '↺';
-    this.makeUnselectable(ccw);
-    return [cw, ccw];
-  };
-
-  Croppy.prototype.createZoomSlider = function() {
-    var slider;
-    slider = document.createElement('input');
-    slider.type = 'range';
-    slider.id = 'croppy-zoom-slider';
-    slider.min = 1;
-    slider.max = 1000;
-    slider.step = 1;
-    return slider;
-  };
-
-  Croppy.prototype.createCroppyEl = function() {
-    var croppyEl;
-    croppyEl = document.createElement('div');
-    croppyEl.id = 'croppy';
-    croppyEl.style.position = 'relative';
-    croppyEl.style.width = this.settings.width;
-    croppyEl.style.height = this.settings.height;
-    croppyEl.style.margin = '0 auto';
-    croppyEl.appendChild(this.canvas.el);
-    croppyEl.appendChild(this.cropOverlay);
-    return croppyEl;
-  };
-
-  Croppy.prototype.createRotDiv = function() {
-    var rotDiv;
-    rotDiv = document.createElement('div');
-    rotDiv.id = 'croppy-rot';
-    return rotDiv;
+  Croppy.prototype.defaults = function() {
+    return {
+      cropWidth: '150px',
+      cropHeight: '150px',
+      cropBorder: '2px solid orange',
+      cropTop: '75px',
+      cropLeft: '75px',
+      rot: createRotationButtons(),
+      zoomButtons: createZoomButtons()
+    };
   };
 
   Croppy.prototype.render = function() {
-    var rotDiv;
-    this.el = this.createCroppyEl();
-    rotDiv = this.createRotDiv();
-    rotDiv.appendChild(this.canvas.cw);
-    rotDiv.appendChild(this.canvas.ccw);
-    this.el.appendChild(rotDiv);
-    this.el.appendChild(this.canvas.zoomSlider);
+    var rotDiv, zoomDiv;
+    this.el = createCroppyEl(this.canvas, this.cropOverlay, this.settings);
+    makeUnselectable(this.el);
+    this.el.appendChild(rotDiv = createRotDiv(this.canvas));
+    this.el.appendChild(zoomDiv = createZoomDiv(this.canvas));
     return this.container.appendChild(this.el);
+  };
+
+  /*
+  @return [Object] A bunch of useful data about the position and size
+                   of both image and crop, and image rotation, image
+                   scale, and a reference to the source data.
+  */
+
+
+  Croppy.prototype["export"] = function() {
+    return {
+      rotation: this.canvas.currentAngle,
+      scale: this.canvas.scale,
+      src: this.settings.src,
+      scaled: {
+        x: this.canvas.translatePos.x,
+        y: this.canvas.translatePos.y,
+        width: this.canvas.image.naturalWidth * this.canvas.scale,
+        height: this.canvas.image.naturalHeight * this.canvas.scale
+      },
+      natural: {
+        x: this.canvas.translatePos.x / this.canvas.scale,
+        y: this.canvas.translatePos.y / this.canvas.scale,
+        width: this.canvas.image.naturalWidth,
+        height: this.canvas.image.naturalHeight
+      },
+      crop: {
+        x: -this.canvas.translatePos.x,
+        y: -this.canvas.translatePos.y,
+        width: parseInt(this.cropOverlay.style.width),
+        height: parseInt(this.cropOverlay.style.height)
+      }
+    };
   };
 
   return Croppy;

@@ -11,8 +11,12 @@
     window.c = new Croppy('container', {
       src: 'images/phinney.jpg',
       // src: 'images/darth-vader.jpg',
+      scale: 0.5,
       debug: true
     });
+    setTimeout(function() {
+      console.log(c.export());
+    }, 200);
   </script>
 
 </body>

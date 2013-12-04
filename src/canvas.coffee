@@ -7,26 +7,31 @@ class Canvas
 
 
   constructor: (options) ->
-    @settings        = Util.merge options, @defaults
-    [@cw, @ccw]      = @settings.rot
-    @zoomSlider      = @settings.zoomSlider
-    @currentAngle    = 0
-    @mouseDown       = false
-    @scale           = @settings.scale || 1.0
-    @scaleMultiplier = @settings.scaleMultiplier || 0.95
-    @startDragOffset = {}
-    # @translatePos  = {} # gets set in loadImage
+    @settings               = Util.merge options, @defaults
+    [@cw, @ccw]             = @settings.rot
+    [@zoomPlus, @zoomMinus] = @settings.zoomButtons
+    @currentAngle           = @settings.currentAngle
+    @scaleMultiplier        = @settings.scaleMultiplier
+    @mousewheelZoom         = @settings.mousewheelZoom
+    @mouseDown              = false
+    @startDragOffset        = {}
 
     # Do these last
-    @el              = @createCanvas()
-    @image           = @loadImage()
+    @el    = @createCanvas()
+    @image = @loadImage()
 
 
   defaults:
-      width : '300'
-      height: '300'
+    width           : '300'
+    height          : '300'
+    scaleMultiplier : 1.05
+    currentAngle    : 0
+    mousewheelZoom  : true
 
-
+  ###
+  Do the actual drawing on the canvas.  Image is drawn with `@translatePos` as the
+  image's centerpoint.  The `@scale` is relative to the image's natural size.
+  ###
   draw: ->
     cx = @el.getContext("2d")
 
@@ -35,9 +40,9 @@ class Canvas
 
     cx.save()
 
-    console.log 'translatePos:', @translatePos, ', scale:', @scale.toPrecision(2), ', angle:', @currentAngle if @settings.debug
+    console.log 'translatePos:', @translatePos, ', scale:', parseFloat(@scale.toPrecision 2), ', angle:', @currentAngle if @settings.debug
 
-    cx.translate @translatePos.x, @translatePos.y
+    cx.translate @translatePos.x + @el.width / 2, @translatePos.y + @el.height / 2
     cx.scale @scale, @scale
     cx.rotate @currentAngle * Math.PI / 180
 
@@ -53,58 +58,102 @@ class Canvas
     canvas.height = @settings.height
     canvas.width  = @settings.width
 
-    # Add rotation handlers
+    # Rotation functions
     if @cw
-      @cw.addEventListener "click", =>
+      rotateCW = =>
         @currentAngle += 90
         @draw()
-      , false
 
     if @ccw
-      @ccw.addEventListener "click", =>
+      rotateCCW = =>
         @currentAngle -= 90
         @draw()
+
+    # Add rotation handlers
+    @cw.addEventListener  "click", rotateCW,  false if @cw
+    @ccw.addEventListener "click", rotateCCW, false if @ccw
+
+    # Zoom functions
+    if @zoomPlus || @mousewheelZoom
+      zoomIn = =>
+        @scale *= @scaleMultiplier
+        @draw()
+
+    if @zoomMinus || @mousewheelZoom
+      zoomOut = =>
+        @scale /= @scaleMultiplier
+        @draw()
+
+    if @mousewheelZoom
+      # Add zoom handlers
+      canvas.addEventListener "mousewheel", (e) =>
+        if e.wheelDeltaY > 0
+          zoomIn()
+        else
+          zoomOut()
       , false
 
-    # Add zoom handlers
-    canvas.addEventListener "mousewheel", (e) =>
-      if e.wheelDeltaY > 0
-        @scale *= @scaleMultiplier
-      else
-        @scale /= @scaleMultiplier
+    if @zoomPlus || @zoomMinus
+      zooming = (fn) =>
+        @mouseDown = true
+        @mouseDownIntervalId = setInterval fn, 50
 
-      @updateZoomSlider()
-      @draw()
-    , false
+    if @zoomPlus
+      @zoomPlus.addEventListener 'mousedown', =>
+        zooming zoomIn
+      , false
 
-    if @zoomSlider
-      @zoomSlider.addEventListener 'change', (e) =>
-        @scale = @convertSliderToScale e.target.value
-        @draw()
+      @zoomPlus.addEventListener 'mouseup', =>
+        @mouseDown = false
+        clearInterval @mouseDownIntervalId
+      , false
+
+    if @zoomMinus
+      @zoomMinus.addEventListener 'mousedown', =>
+        zooming zoomOut
+      , false
+
+      @zoomMinus.addEventListener 'mouseup', =>
+        @mouseDown = false
+        clearInterval @mouseDownIntervalId
       , false
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
-      @mouseDown = true
+      @mouseDrag true
       @startDragOffset.x = e.clientX - @translatePos.x
       @startDragOffset.y = e.clientY - @translatePos.y
 
     canvas.addEventListener "mouseup", (e) =>
-      @mouseDown = false
+      @mouseDrag false
 
     canvas.addEventListener "mouseover", (e) =>
-      @mouseDown = false
+      @mouseDrag false
 
     canvas.addEventListener "mouseout", (e) =>
-      @mouseDown = false
+      @mouseDrag false, 'initial'
 
     canvas.addEventListener "mousemove", (e) =>
       if @mouseDown
+        @mouseDrag true
         @translatePos.x = e.clientX - @startDragOffset.x
         @translatePos.y = e.clientY - @startDragOffset.y
         @draw()
 
     canvas
+
+
+  ###
+  Sets the `@mouseDown` state and the cursor CSS
+
+  @param dragging [Boolean] Whether or not we should be considered currently 'dragging'
+  @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
+  ###
+  mouseDrag: (dragging, cursor) ->
+    if @mouseDown = dragging
+      @el.style.cursor = cursor || 'move'
+    else
+      @el.style.cursor = cursor || 'pointer'
 
 
   ###
@@ -114,12 +163,12 @@ class Canvas
   ###
   loadImage: (src) ->
     context = @el.getContext '2d'
-    image   = new Image()
+    @image   = new Image()
 
-    image.onload = (e) =>
+    @image.onload = (e) =>
       img = e.srcElement
 
-      console.log 'Image width:', img.width, ', height:', img.height
+      console.log 'Image width:', img.width, ', height:', img.height if @settings.debug
 
       xCorrection = 0
       yCorrection = 0
@@ -131,48 +180,20 @@ class Canvas
       #
       # TODO: The Correction calculation is wrong, it's not exact center, and it should be.
       smallestDimension = if img.width < img.height
-        yCorrection = @el.height / 2
         img.width
       else
-        xCorrection = @el.width / 2
         img.height
 
-
-      @scale = @el.width / smallestDimension
-
-      @updateZoomSlider()
+      @scale ||= @el.width / smallestDimension
 
       @translatePos =
-        x: (@scale * img.width  - xCorrection) / 2
-        y: (@scale * img.height - yCorrection) / 2
+        x: 0
+        y: 0
 
       @draw()
 
-    image.src = src || @settings.src
-    image
-
-
-  ###
-  Sets the zoomSlider value to the correct spot
-  ###
-  updateZoomSlider: (value) ->
-    @zoomSlider.value = @convertScaleToSlider(value || @scale)
-
-
-  ###
-  Inverse of {convertScaleToSlider}.
-
-  TODO: Make this a better scale
-  ###
-  convertSliderToScale: (y) ->
-    y / 1000
-
-
-  ###
-  Inverse of {convertSliderToScale}
-  ###
-  convertScaleToSlider: (x) ->
-    x * 1000
+    @image.src = src || @settings.src
+    @image
 
 
 module.exports = Canvas
