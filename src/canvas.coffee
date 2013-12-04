@@ -120,9 +120,10 @@ class Canvas
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
-      @mouseDrag true
-      @startDragOffset.x = e.clientX - @translatePos.x
-      @startDragOffset.y = e.clientY - @translatePos.y
+      if e.button == 0
+        @mouseDrag true
+        @startDragOffset.x = e.clientX - @translatePos.x
+        @startDragOffset.y = e.clientY - @translatePos.y
 
     canvas.addEventListener "mouseup", (e) =>
       @mouseDrag false
@@ -134,7 +135,7 @@ class Canvas
       @mouseDrag false, 'initial'
 
     canvas.addEventListener "mousemove", (e) =>
-      if @mouseDown
+      if @mouseDown && e.button == 0
         @mouseDrag true
         @translatePos.x = e.clientX - @startDragOffset.x
         @translatePos.y = e.clientY - @startDragOffset.y

@@ -127,9 +127,11 @@ Canvas = (function() {
       }, false);
     }
     canvas.addEventListener("mousedown", function(e) {
-      _this.mouseDrag(true);
-      _this.startDragOffset.x = e.clientX - _this.translatePos.x;
-      return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
+      if (e.button === 0) {
+        _this.mouseDrag(true);
+        _this.startDragOffset.x = e.clientX - _this.translatePos.x;
+        return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
+      }
     });
     canvas.addEventListener("mouseup", function(e) {
       return _this.mouseDrag(false);
@@ -141,7 +143,7 @@ Canvas = (function() {
       return _this.mouseDrag(false, 'initial');
     });
     canvas.addEventListener("mousemove", function(e) {
-      if (_this.mouseDown) {
+      if (_this.mouseDown && e.button === 0) {
         _this.mouseDrag(true);
         _this.translatePos.x = e.clientX - _this.startDragOffset.x;
         _this.translatePos.y = e.clientY - _this.startDragOffset.y;
