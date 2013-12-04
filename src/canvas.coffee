@@ -58,7 +58,9 @@ class Canvas
     canvas.height = @settings.height
     canvas.width  = @settings.width
 
-    # Rotation functions
+    ###
+    Rotation functions
+    ###
     if @cw
       rotateCW = =>
         @currentAngle += 90
@@ -73,7 +75,9 @@ class Canvas
     @cw.addEventListener  "click", rotateCW,  false if @cw
     @ccw.addEventListener "click", rotateCCW, false if @ccw
 
-    # Zoom functions
+    ###
+    Zoom functions
+    ###
     if @zoomPlus || @mousewheelZoom
       zoomIn = =>
         @scale *= @scaleMultiplier
@@ -102,7 +106,7 @@ class Canvas
         @mouseDown = false
         clearInterval @mouseDownIntervalId
 
-    if @zoomPlus
+    if @zoomPlus # Zooming in
       @zoomPlus.addEventListener 'mousedown', (e) =>
         zooming zoomIn if e.button == 0
       , false
@@ -121,7 +125,7 @@ class Canvas
         endZooming()
       , false
 
-    if @zoomMinus
+    if @zoomMinus # Zooming out
       @zoomMinus.addEventListener 'mousedown', (e) =>
         zooming zoomOut if e.button == 0
       , false
@@ -140,16 +144,33 @@ class Canvas
         endZooming()
       , false
 
+
+    ###
+    Dragging
+    ###
     startDrag = (e) =>
-      @mouseDrag true
+      @dragHandler true
+      @startTranslatePos =
+        x: @translatePos.x
+        y: @translatePos.y
+
       @startDragOffset.x = e.clientX - @translatePos.x
       @startDragOffset.y = e.clientY - @translatePos.y
 
     drawDuringDrag = (e) =>
-      @mouseDrag true
+      @dragHandler true
       @translatePos.x = e.clientX - @startDragOffset.x
       @translatePos.y = e.clientY - @startDragOffset.y
-      @draw()
+
+      if @touchDragStarted
+        buffer = 20
+        @touchDragThresholdReached = Math.abs(@startTranslatePos.x - @translatePos.x) > buffer ||
+                    Math.abs(@startTranslatePos.y - @translatePos.y) > buffer unless @touchDragThresholdReached
+
+        @draw() if @touchDragThresholdReached && !@touchZooming
+
+      else
+        @draw()
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
@@ -158,62 +179,99 @@ class Canvas
 
     canvas.addEventListener "mouseup", (e) =>
       e.preventDefault()
-      @mouseDrag false
+      @dragHandler false
 
     canvas.addEventListener "mouseover", (e) =>
       e.preventDefault()
-      @mouseDrag false
+      @dragHandler false
 
     canvas.addEventListener "mouseout", (e) =>
       e.preventDefault()
-      @mouseDrag false, 'initial'
+      @dragHandler false, 'initial'
 
     canvas.addEventListener "mousemove", (e) =>
       e.preventDefault()
       drawDuringDrag(e) if @mouseDown && e.button == 0
 
-
-    # Touch events
+    ###
+    Canvas touch drag and zoom events
+    ###
     canvas.addEventListener "touchstart", (e) =>
       e.preventDefault()
-      startDrag e.touches[0]
+
+      if e.touches.length == 2
+        @touchZooming = true
+        @startPinchDistance = getPinchDistance e.touches
+      else
+        @touchDragStarted = true
+        startDrag e.touches[0]
     , false
 
     canvas.addEventListener "touchend", (e) =>
       e.preventDefault()
-      @mouseDrag false
+      @dragHandler false
     , false
 
     canvas.addEventListener "touchcancel", (e) =>
       e.preventDefault()
-      @mouseDrag false
+      @dragHandler false
     , false
 
     canvas.addEventListener "touchleave", (e) =>
       e.preventDefault()
-      @mouseDrag false
+      @dragHandler false
     , false
+
+    getPinchDistance = (touches) ->
+      Math.sqrt(
+        (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX) +
+        (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY))
+
+    touchZoom = (touches) =>
+      pinchDistance = getPinchDistance touches
+      console.log delta = pinchDistance - @startPinchDistance
+
+      # TODO: Make this better... based off of actual delta distance somehow
+      if delta > 0
+        @scale *= @scaleMultiplier
+      else
+        @scale /= @scaleMultiplier
+
+      # TODO: Change `@translatePos` during zoom to keep it centered on the same spot
+      @draw()
 
     canvas.addEventListener "touchmove", (e) =>
       e.preventDefault()
-      drawDuringDrag e.touches[0]
-    , false
 
+      if e.touches.length == 2
+        touchZoom e.touches
+      else
+        drawDuringDrag e.touches[0]
+    , false
 
     canvas
 
 
   ###
-  Sets the `@mouseDown` state and the cursor CSS
+  Sets and unsets the various states involved in dragging/zooming
+
+  TODO: Probably refactor this.. it's getting messy.
 
   @param dragging [Boolean] Whether or not we should be considered currently 'dragging'
   @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
   ###
-  mouseDrag: (dragging, cursor) ->
+  dragHandler: (dragging, cursor) ->
     if @mouseDown = dragging
       @el.style.cursor = cursor || 'move'
     else
       @el.style.cursor = cursor || 'pointer'
+      @touchDragStarted = false
+      @touchDragThresholdReached = false
+
+      # Prevent zooming from becoming dragging during touch release
+      setTimeout =>
+        @touchZooming = false
+      , 200
 
 
   ###

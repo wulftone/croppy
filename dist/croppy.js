@@ -53,12 +53,16 @@ Canvas = (function() {
   };
 
   Canvas.prototype.createCanvas = function() {
-    var canvas, drawDuringDrag, endZooming, rotateCCW, rotateCW, startDrag, zoomIn, zoomOut, zooming,
+    var canvas, drawDuringDrag, endZooming, getPinchDistance, rotateCCW, rotateCW, startDrag, touchZoom, zoomIn, zoomOut, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
     canvas.height = this.settings.height;
     canvas.width = this.settings.width;
+    /*
+    Rotation functions
+    */
+
     if (this.cw) {
       rotateCW = function() {
         _this.currentAngle += 90;
@@ -77,6 +81,10 @@ Canvas = (function() {
     if (this.ccw) {
       this.ccw.addEventListener("click", rotateCCW, false);
     }
+    /*
+    Zoom functions
+    */
+
     if (this.zoomPlus || this.mousewheelZoom) {
       zoomIn = function() {
         _this.scale *= _this.scaleMultiplier;
@@ -144,16 +152,35 @@ Canvas = (function() {
         return endZooming();
       }, false);
     }
+    /*
+    Dragging
+    */
+
     startDrag = function(e) {
-      _this.mouseDrag(true);
+      _this.dragHandler(true);
+      _this.startTranslatePos = {
+        x: _this.translatePos.x,
+        y: _this.translatePos.y
+      };
       _this.startDragOffset.x = e.clientX - _this.translatePos.x;
       return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
     };
     drawDuringDrag = function(e) {
-      _this.mouseDrag(true);
+      var buffer;
+      _this.dragHandler(true);
       _this.translatePos.x = e.clientX - _this.startDragOffset.x;
       _this.translatePos.y = e.clientY - _this.startDragOffset.y;
-      return _this.draw();
+      if (_this.touchDragStarted) {
+        buffer = 20;
+        if (!_this.touchDragThresholdReached) {
+          _this.touchDragThresholdReached = Math.abs(_this.startTranslatePos.x - _this.translatePos.x) > buffer || Math.abs(_this.startTranslatePos.y - _this.translatePos.y) > buffer;
+        }
+        if (_this.touchDragThresholdReached && !_this.touchZooming) {
+          return _this.draw();
+        }
+      } else {
+        return _this.draw();
+      }
     };
     canvas.addEventListener("mousedown", function(e) {
       e.preventDefault();
@@ -163,15 +190,15 @@ Canvas = (function() {
     });
     canvas.addEventListener("mouseup", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false);
+      return _this.dragHandler(false);
     });
     canvas.addEventListener("mouseover", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false);
+      return _this.dragHandler(false);
     });
     canvas.addEventListener("mouseout", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false, 'initial');
+      return _this.dragHandler(false, 'initial');
     });
     canvas.addEventListener("mousemove", function(e) {
       e.preventDefault();
@@ -179,42 +206,78 @@ Canvas = (function() {
         return drawDuringDrag(e);
       }
     });
+    /*
+    Canvas touch drag and zoom events
+    */
+
     canvas.addEventListener("touchstart", function(e) {
       e.preventDefault();
-      return startDrag(e.touches[0]);
+      if (e.touches.length === 2) {
+        _this.touchZooming = true;
+        return _this.startPinchDistance = getPinchDistance(e.touches);
+      } else {
+        _this.touchDragStarted = true;
+        return startDrag(e.touches[0]);
+      }
     }, false);
     canvas.addEventListener("touchend", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false);
+      return _this.dragHandler(false);
     }, false);
     canvas.addEventListener("touchcancel", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false);
+      return _this.dragHandler(false);
     }, false);
     canvas.addEventListener("touchleave", function(e) {
       e.preventDefault();
-      return _this.mouseDrag(false);
+      return _this.dragHandler(false);
     }, false);
+    getPinchDistance = function(touches) {
+      return Math.sqrt((touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX) + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY));
+    };
+    touchZoom = function(touches) {
+      var delta, pinchDistance;
+      pinchDistance = getPinchDistance(touches);
+      console.log(delta = pinchDistance - _this.startPinchDistance);
+      if (delta > 0) {
+        _this.scale *= _this.scaleMultiplier;
+      } else {
+        _this.scale /= _this.scaleMultiplier;
+      }
+      return _this.draw();
+    };
     canvas.addEventListener("touchmove", function(e) {
       e.preventDefault();
-      return drawDuringDrag(e.touches[0]);
+      if (e.touches.length === 2) {
+        return touchZoom(e.touches);
+      } else {
+        return drawDuringDrag(e.touches[0]);
+      }
     }, false);
     return canvas;
   };
 
   /*
-  Sets the `@mouseDown` state and the cursor CSS
+  Sets and unsets the various states involved in dragging/zooming
+  
+  TODO: Probably refactor this.. it's getting messy.
   
   @param dragging [Boolean] Whether or not we should be considered currently 'dragging'
   @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
   */
 
 
-  Canvas.prototype.mouseDrag = function(dragging, cursor) {
+  Canvas.prototype.dragHandler = function(dragging, cursor) {
+    var _this = this;
     if (this.mouseDown = dragging) {
       return this.el.style.cursor = cursor || 'move';
     } else {
-      return this.el.style.cursor = cursor || 'pointer';
+      this.el.style.cursor = cursor || 'pointer';
+      this.touchDragStarted = false;
+      this.touchDragThresholdReached = false;
+      return setTimeout(function() {
+        return _this.touchZooming = false;
+      }, 200);
     }
   };
 
