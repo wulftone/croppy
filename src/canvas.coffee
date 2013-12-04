@@ -99,8 +99,8 @@ class Canvas
         @mouseDownIntervalId = setInterval fn, 50
 
     if @zoomPlus
-      @zoomPlus.addEventListener 'mousedown', =>
-        zooming zoomIn
+      @zoomPlus.addEventListener 'mousedown', (e) =>
+        zooming zoomIn if e.button == 0
       , false
 
       @zoomPlus.addEventListener 'mouseup', =>
@@ -109,8 +109,8 @@ class Canvas
       , false
 
     if @zoomMinus
-      @zoomMinus.addEventListener 'mousedown', =>
-        zooming zoomOut
+      @zoomMinus.addEventListener 'mousedown', (e) =>
+        zooming zoomOut if e.button == 0
       , false
 
       @zoomMinus.addEventListener 'mouseup', =>

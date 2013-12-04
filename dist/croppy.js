@@ -105,8 +105,10 @@ Canvas = (function() {
       };
     }
     if (this.zoomPlus) {
-      this.zoomPlus.addEventListener('mousedown', function() {
-        return zooming(zoomIn);
+      this.zoomPlus.addEventListener('mousedown', function(e) {
+        if (e.button === 0) {
+          return zooming(zoomIn);
+        }
       }, false);
       this.zoomPlus.addEventListener('mouseup', function() {
         _this.mouseDown = false;
@@ -114,8 +116,10 @@ Canvas = (function() {
       }, false);
     }
     if (this.zoomMinus) {
-      this.zoomMinus.addEventListener('mousedown', function() {
-        return zooming(zoomOut);
+      this.zoomMinus.addEventListener('mousedown', function(e) {
+        if (e.button === 0) {
+          return zooming(zoomOut);
+        }
       }, false);
       this.zoomMinus.addEventListener('mouseup', function() {
         _this.mouseDown = false;
