@@ -98,14 +98,27 @@ class Canvas
         @mouseDown = true
         @mouseDownIntervalId = setInterval fn, 50
 
+      endZooming = (e) =>
+        @mouseDown = false
+        clearInterval @mouseDownIntervalId
+
     if @zoomPlus
       @zoomPlus.addEventListener 'mousedown', (e) =>
         zooming zoomIn if e.button == 0
       , false
 
       @zoomPlus.addEventListener 'mouseup', =>
-        @mouseDown = false
-        clearInterval @mouseDownIntervalId
+        endZooming()
+      , false
+
+      @zoomPlus.addEventListener "touchstart", (e) =>
+        e.preventDefault()
+        zooming zoomIn
+      , false
+
+      @zoomPlus.addEventListener "touchend", (e) =>
+        e.preventDefault()
+        endZooming()
       , false
 
     if @zoomMinus
@@ -114,32 +127,78 @@ class Canvas
       , false
 
       @zoomMinus.addEventListener 'mouseup', =>
-        @mouseDown = false
-        clearInterval @mouseDownIntervalId
+        endZooming()
       , false
+
+      @zoomMinus.addEventListener "touchstart", (e) =>
+        e.preventDefault()
+        zooming zoomOut
+      , false
+
+      @zoomMinus.addEventListener "touchend", (e) =>
+        e.preventDefault()
+        endZooming()
+      , false
+
+    startDrag = (e) =>
+      @mouseDrag true
+      @startDragOffset.x = e.clientX - @translatePos.x
+      @startDragOffset.y = e.clientY - @translatePos.y
+
+    drawDuringDrag = (e) =>
+      @mouseDrag true
+      @translatePos.x = e.clientX - @startDragOffset.x
+      @translatePos.y = e.clientY - @startDragOffset.y
+      @draw()
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
-      if e.button == 0
-        @mouseDrag true
-        @startDragOffset.x = e.clientX - @translatePos.x
-        @startDragOffset.y = e.clientY - @translatePos.y
+      e.preventDefault()
+      startDrag(e) if e.button == 0
 
     canvas.addEventListener "mouseup", (e) =>
+      e.preventDefault()
       @mouseDrag false
 
     canvas.addEventListener "mouseover", (e) =>
+      e.preventDefault()
       @mouseDrag false
 
     canvas.addEventListener "mouseout", (e) =>
+      e.preventDefault()
       @mouseDrag false, 'initial'
 
     canvas.addEventListener "mousemove", (e) =>
-      if @mouseDown && e.button == 0
-        @mouseDrag true
-        @translatePos.x = e.clientX - @startDragOffset.x
-        @translatePos.y = e.clientY - @startDragOffset.y
-        @draw()
+      e.preventDefault()
+      drawDuringDrag(e) if @mouseDown && e.button == 0
+
+
+    # Touch events
+    canvas.addEventListener "touchstart", (e) =>
+      e.preventDefault()
+      startDrag e.touches[0]
+    , false
+
+    canvas.addEventListener "touchend", (e) =>
+      e.preventDefault()
+      @mouseDrag false
+    , false
+
+    canvas.addEventListener "touchcancel", (e) =>
+      e.preventDefault()
+      @mouseDrag false
+    , false
+
+    canvas.addEventListener "touchleave", (e) =>
+      e.preventDefault()
+      @mouseDrag false
+    , false
+
+    canvas.addEventListener "touchmove", (e) =>
+      e.preventDefault()
+      drawDuringDrag e.touches[0]
+    , false
+
 
     canvas
 

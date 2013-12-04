@@ -100,9 +100,9 @@ class Croppy
   constructor: (id, options = {}) ->
     @settings    = Util.merge options, @defaults()
     @container   = document.getElementById id
+    @cropOverlay = createCropOverlay @settings
     @canvas      = new Canvas @settings
     @canvas.id   = 'croppy-canvas'
-    @cropOverlay = createCropOverlay @settings
     @render()
 
 

@@ -53,7 +53,7 @@ Canvas = (function() {
   };
 
   Canvas.prototype.createCanvas = function() {
-    var canvas, rotateCCW, rotateCW, zoomIn, zoomOut, zooming,
+    var canvas, drawDuringDrag, endZooming, rotateCCW, rotateCW, startDrag, zoomIn, zoomOut, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
@@ -103,6 +103,10 @@ Canvas = (function() {
         _this.mouseDown = true;
         return _this.mouseDownIntervalId = setInterval(fn, 50);
       };
+      endZooming = function(e) {
+        _this.mouseDown = false;
+        return clearInterval(_this.mouseDownIntervalId);
+      };
     }
     if (this.zoomPlus) {
       this.zoomPlus.addEventListener('mousedown', function(e) {
@@ -111,8 +115,15 @@ Canvas = (function() {
         }
       }, false);
       this.zoomPlus.addEventListener('mouseup', function() {
-        _this.mouseDown = false;
-        return clearInterval(_this.mouseDownIntervalId);
+        return endZooming();
+      }, false);
+      this.zoomPlus.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        return zooming(zoomIn);
+      }, false);
+      this.zoomPlus.addEventListener("touchend", function(e) {
+        e.preventDefault();
+        return endZooming();
       }, false);
     }
     if (this.zoomMinus) {
@@ -122,34 +133,72 @@ Canvas = (function() {
         }
       }, false);
       this.zoomMinus.addEventListener('mouseup', function() {
-        _this.mouseDown = false;
-        return clearInterval(_this.mouseDownIntervalId);
+        return endZooming();
+      }, false);
+      this.zoomMinus.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        return zooming(zoomOut);
+      }, false);
+      this.zoomMinus.addEventListener("touchend", function(e) {
+        e.preventDefault();
+        return endZooming();
       }, false);
     }
+    startDrag = function(e) {
+      _this.mouseDrag(true);
+      _this.startDragOffset.x = e.clientX - _this.translatePos.x;
+      return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
+    };
+    drawDuringDrag = function(e) {
+      _this.mouseDrag(true);
+      _this.translatePos.x = e.clientX - _this.startDragOffset.x;
+      _this.translatePos.y = e.clientY - _this.startDragOffset.y;
+      return _this.draw();
+    };
     canvas.addEventListener("mousedown", function(e) {
+      e.preventDefault();
       if (e.button === 0) {
-        _this.mouseDrag(true);
-        _this.startDragOffset.x = e.clientX - _this.translatePos.x;
-        return _this.startDragOffset.y = e.clientY - _this.translatePos.y;
+        return startDrag(e);
       }
     });
     canvas.addEventListener("mouseup", function(e) {
+      e.preventDefault();
       return _this.mouseDrag(false);
     });
     canvas.addEventListener("mouseover", function(e) {
+      e.preventDefault();
       return _this.mouseDrag(false);
     });
     canvas.addEventListener("mouseout", function(e) {
+      e.preventDefault();
       return _this.mouseDrag(false, 'initial');
     });
     canvas.addEventListener("mousemove", function(e) {
+      e.preventDefault();
       if (_this.mouseDown && e.button === 0) {
-        _this.mouseDrag(true);
-        _this.translatePos.x = e.clientX - _this.startDragOffset.x;
-        _this.translatePos.y = e.clientY - _this.startDragOffset.y;
-        return _this.draw();
+        return drawDuringDrag(e);
       }
     });
+    canvas.addEventListener("touchstart", function(e) {
+      e.preventDefault();
+      return startDrag(e.touches[0]);
+    }, false);
+    canvas.addEventListener("touchend", function(e) {
+      e.preventDefault();
+      return _this.mouseDrag(false);
+    }, false);
+    canvas.addEventListener("touchcancel", function(e) {
+      e.preventDefault();
+      return _this.mouseDrag(false);
+    }, false);
+    canvas.addEventListener("touchleave", function(e) {
+      e.preventDefault();
+      return _this.mouseDrag(false);
+    }, false);
+    canvas.addEventListener("touchmove", function(e) {
+      e.preventDefault();
+      return drawDuringDrag(e.touches[0]);
+    }, false);
     return canvas;
   };
 
@@ -319,9 +368,9 @@ Croppy = (function() {
     }
     this.settings = Util.merge(options, this.defaults());
     this.container = document.getElementById(id);
+    this.cropOverlay = createCropOverlay(this.settings);
     this.canvas = new Canvas(this.settings);
     this.canvas.id = 'croppy-canvas';
-    this.cropOverlay = createCropOverlay(this.settings);
     this.render();
   }
 
