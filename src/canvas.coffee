@@ -40,7 +40,7 @@ class Canvas
 
     cx.save()
 
-    console.log 'translatePos:', @translatePos, ', scale:', parseFloat(@scale.toPrecision 2), ', angle:', @currentAngle if @settings.debug
+    # console.log 'translatePos:', @translatePos, ', scale:', parseFloat(@scale.toPrecision 2), ', angle:', @currentAngle if @settings.debug
 
     cx.translate @translatePos.x + @el.width / 2, @translatePos.y + @el.height / 2
     cx.scale @scale, @scale
@@ -198,7 +198,7 @@ class Canvas
     ###
     canvas.addEventListener "touchstart", (e) =>
       e.preventDefault()
-
+      console.log 'canvas touchstart'
       if e.touches.length == 2
         @touchZooming = true
         @startPinchDistance = getPinchDistance e.touches

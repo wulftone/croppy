@@ -42,9 +42,6 @@ Canvas = (function() {
     cx = this.el.getContext("2d");
     cx.clearRect(0, 0, this.el.width, this.el.height);
     cx.save();
-    if (this.settings.debug) {
-      console.log('translatePos:', this.translatePos, ', scale:', parseFloat(this.scale.toPrecision(2)), ', angle:', this.currentAngle);
-    }
     cx.translate(this.translatePos.x + this.el.width / 2, this.translatePos.y + this.el.height / 2);
     cx.scale(this.scale, this.scale);
     cx.rotate(this.currentAngle * Math.PI / 180);
@@ -212,6 +209,7 @@ Canvas = (function() {
 
     canvas.addEventListener("touchstart", function(e) {
       e.preventDefault();
+      console.log('canvas touchstart');
       if (e.touches.length === 2) {
         _this.touchZooming = true;
         return _this.startPinchDistance = getPinchDistance(e.touches);
@@ -336,6 +334,9 @@ createCropOverlay = function(settings) {
   var overlay, style;
   overlay = document.createElement('div');
   overlay.id = 'croppy-crop-area';
+  overlay.addEventListener('touchstart', function(e) {
+    return e.preventDefault();
+  });
   style = overlay.style;
   style.width = settings.cropWidth;
   style.height = settings.cropHeight;

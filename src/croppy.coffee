@@ -8,6 +8,11 @@ createCropOverlay = (settings) ->
   overlay = document.createElement 'div'
   overlay.id = 'croppy-crop-area'
 
+  # The following event listener causes `pointer-events` to work like it should.
+  # Don't ask me why it works this way.
+  overlay.addEventListener 'touchstart', (e) ->
+    e.preventDefault()
+
   style = overlay.style
   style.width         = settings.cropWidth
   style.height        = settings.cropHeight
