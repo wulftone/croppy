@@ -8,3 +8,4 @@ A simple HTML5 canvas crop and zoom library.
 
 # Options
 
+TBD
