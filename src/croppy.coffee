@@ -38,13 +38,13 @@ makeUnselectable = (el) ->
 createRotationButtons = ->
   cw              = document.createElement 'span'
   cw.id           = 'croppy-rot-cw'
-  cw.innerText    = '↻'
+  cw.innerHTML    = '↻'
   cw.style.cursor = 'pointer'
   makeUnselectable cw
 
   ccw              = document.createElement 'span'
   ccw.id           = 'croppy-rot-ccw'
-  ccw.innerText    = '↺'
+  ccw.innerHTML    = '↺'
   ccw.style.cursor = 'pointer'
   makeUnselectable ccw
 
@@ -54,13 +54,13 @@ createRotationButtons = ->
 createZoomButtons = ->
   plus              = document.createElement 'span'
   plus.id           = 'croppy-zoom-plus'
-  plus.innerText    = 'In'
+  plus.innerHTML    = 'In'
   plus.style.cursor = 'pointer'
   makeUnselectable plus
 
   minus              = document.createElement 'span'
   minus.id           = 'croppy-zoom-minus'
-  minus.innerText    = 'Out'
+  minus.innerHTML    = 'Out'
   minus.style.cursor = 'pointer'
   makeUnselectable minus
 

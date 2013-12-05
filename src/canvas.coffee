@@ -297,7 +297,7 @@ class Canvas
     @image   = new Image()
 
     @image.onload = (e) =>
-      img = e.srcElement
+      img = e.target
 
       console.log 'Image width:', img.width, ', height:', img.height if @settings.debug
 
