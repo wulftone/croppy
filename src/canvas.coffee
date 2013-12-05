@@ -232,7 +232,6 @@ class Canvas
       pinchDistance = getPinchDistance touches
       delta = pinchDistance / @startPinchDistance
       @scale = @startScale * delta
-      # TODO: Change `@translatePos` during zoom to keep it centered on the same spot
       @draw()
 
     canvas.addEventListener "touchmove", (e) =>
