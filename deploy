@@ -1,0 +1,12 @@
+#!/bin/bash
+
+git checkout gh-pages
+git checkout master -- example/index.html example/all.css example/images/ dist/croppy.js
+mv dist/croppy.js ./
+rm -r dist
+mv example/images/* ./images
+rm -r example/images
+mv example/* ./
+rm -r example
+git commit -a -m 'update'
+git push
