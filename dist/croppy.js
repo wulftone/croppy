@@ -4,7 +4,7 @@ var Canvas, Util;
 Util = require('./util.coffee');
 
 /*
-TODO: give @translatePos a reasonable starting point
+The canvas where the editing all happens
 */
 
 
