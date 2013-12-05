@@ -1,8 +1,23 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, user-scalable=no">
   <link rel='stylesheet' href='all.css' />
 </head>
 <body>
+
+  <div id='description'>
+    <p>
+      <b>Croppy</b>: a mouse- and touch-enabled rotate/crop/zoom utility.
+    </p>
+    <p>
+      <ul>
+        <li>Drag: mouse or one-finger touch</li>
+        <li>Zoom: mouse wheel, two-finger pinch, or zoom buttons</li>
+        <li>Rotate: rotation buttons</li>
+        <li>Crop: via javascript (see source)</li>
+      </ul>
+    </p>
+  </div>
 
   <div id='container'></div>
 
@@ -14,7 +29,9 @@
       scale: 0.5,
       debug: true
     });
+
     setTimeout(function() {
+      // View the crop data
       console.log(c.export());
     }, 400);
   </script>
