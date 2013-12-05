@@ -212,6 +212,7 @@ Canvas = (function() {
       console.log('canvas touchstart');
       if (e.touches.length === 2) {
         _this.touchZooming = true;
+        _this.startScale = parseFloat(_this.scale);
         return _this.startPinchDistance = getPinchDistance(e.touches);
       } else {
         _this.touchDragStarted = true;
@@ -236,12 +237,8 @@ Canvas = (function() {
     touchZoom = function(touches) {
       var delta, pinchDistance;
       pinchDistance = getPinchDistance(touches);
-      console.log(delta = pinchDistance - _this.startPinchDistance);
-      if (delta > 0) {
-        _this.scale *= _this.scaleMultiplier;
-      } else {
-        _this.scale /= _this.scaleMultiplier;
-      }
+      delta = pinchDistance / _this.startPinchDistance;
+      _this.scale = _this.startScale * delta;
       return _this.draw();
     };
     canvas.addEventListener("touchmove", function(e) {
@@ -275,7 +272,7 @@ Canvas = (function() {
       this.touchDragThresholdReached = false;
       return setTimeout(function() {
         return _this.touchZooming = false;
-      }, 200);
+      }, 500);
     }
   };
 

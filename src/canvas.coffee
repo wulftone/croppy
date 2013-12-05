@@ -201,6 +201,7 @@ class Canvas
       console.log 'canvas touchstart'
       if e.touches.length == 2
         @touchZooming = true
+        @startScale = parseFloat @scale
         @startPinchDistance = getPinchDistance e.touches
       else
         @touchDragStarted = true
@@ -229,14 +230,8 @@ class Canvas
 
     touchZoom = (touches) =>
       pinchDistance = getPinchDistance touches
-      console.log delta = pinchDistance - @startPinchDistance
-
-      # TODO: Make this better... based off of actual delta distance somehow
-      if delta > 0
-        @scale *= @scaleMultiplier
-      else
-        @scale /= @scaleMultiplier
-
+      delta = pinchDistance / @startPinchDistance
+      @scale = @startScale * delta
       # TODO: Change `@translatePos` during zoom to keep it centered on the same spot
       @draw()
 
@@ -271,7 +266,7 @@ class Canvas
       # Prevent zooming from becoming dragging during touch release
       setTimeout =>
         @touchZooming = false
-      , 200
+      , 500
 
 
   ###
