@@ -239,6 +239,7 @@ class Canvas
 
       if e.touches.length == 2
         touchZoom e.touches
+        # touchRotate e.touches # TODO!
       else
         drawDuringDrag e.touches[0]
     , false
