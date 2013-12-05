@@ -53,7 +53,7 @@ Canvas = (function() {
   };
 
   Canvas.prototype.createCanvas = function() {
-    var canvas, drawDuringDrag, endZooming, getPinchDistance, rotateCCW, rotateCW, startDrag, touchZoom, zoomIn, zoomOut, zooming,
+    var canvas, drawDuringDrag, endZooming, getPinchDistance, mouseWheelZooming, rotateCCW, rotateCW, startDrag, touchZoom, zoomIn, zoomOut, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
@@ -98,12 +98,20 @@ Canvas = (function() {
       };
     }
     if (this.mousewheelZoom) {
-      canvas.addEventListener("mousewheel", function(e) {
-        if (e.wheelDeltaY > 0) {
+      mouseWheelZooming = function(delta) {
+        if (delta > 0) {
           return zoomIn();
         } else {
           return zoomOut();
         }
+      };
+      canvas.addEventListener("mousewheel", function(e) {
+        e.preventDefault();
+        return mouseWheelZooming(e.wheelDelta);
+      }, false);
+      canvas.addEventListener("wheel", function(e) {
+        e.preventDefault();
+        return mouseWheelZooming(e.deltaY);
       }, false);
     }
     if (this.zoomPlus || this.zoomMinus) {

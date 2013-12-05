@@ -89,12 +89,21 @@ class Canvas
         @draw()
 
     if @mousewheelZoom
-      # Add zoom handlers
-      canvas.addEventListener "mousewheel", (e) =>
-        if e.wheelDeltaY > 0
+      mouseWheelZooming = (delta) ->
+        if delta > 0
           zoomIn()
         else
           zoomOut()
+
+      # Add zoom handlers
+      canvas.addEventListener "mousewheel", (e) =>
+        e.preventDefault()
+        mouseWheelZooming e.wheelDelta
+      , false
+
+      canvas.addEventListener "wheel", (e) =>
+        e.preventDefault()
+        mouseWheelZooming e.deltaY
       , false
 
     if @zoomPlus || @zoomMinus
