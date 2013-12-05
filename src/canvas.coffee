@@ -7,14 +7,14 @@ class Canvas
 
 
   constructor: (options) ->
-    @settings               = Util.merge options, @defaults
-    [@cw, @ccw]             = @settings.rot
-    [@zoomPlus, @zoomMinus] = @settings.zoomButtons
-    @currentAngle           = @settings.currentAngle
-    @scaleMultiplier        = @settings.scaleMultiplier
-    @mousewheelZoom         = @settings.mousewheelZoom
-    @mouseDown              = false
-    @startDragOffset        = {}
+    @settings                  = Util.merge options, @defaults
+    [@cw, @ccw]                = @settings.rot
+    [@zoomPlus, @zoomMinus]    = @settings.zoomButtons
+    @currentAngle              = @settings.currentAngle
+    @scaleMultiplier           = @settings.scaleMultiplier
+    @mousewheelZoom            = @settings.mousewheelZoom
+    @mouseDown                 = false
+    @startDragOffset           = {}
 
     # Do these last
     @el    = @createCanvas()
@@ -40,7 +40,7 @@ class Canvas
 
     cx.save()
 
-    # console.log 'translatePos:', @translatePos, ', scale:', parseFloat(@scale.toPrecision 2), ', angle:', @currentAngle if @settings.debug
+    console.log 'translatePos:', @translatePos, ', scale:', parseFloat(@scale.toPrecision 2), ', angle:', @currentAngle if @settings.debug
 
     cx.translate @translatePos.x + @el.width / 2, @translatePos.y + @el.height / 2
     cx.scale @scale, @scale
@@ -158,19 +158,24 @@ class Canvas
       @startDragOffset.y = e.clientY - @translatePos.y
 
     drawDuringDrag = (e) =>
-      @dragHandler true
-      @translatePos.x = e.clientX - @startDragOffset.x
-      @translatePos.y = e.clientY - @startDragOffset.y
+      unless @touchZooming
+        @dragHandler true
+        @translatePos.x = e.clientX - @startDragOffset.x
+        @translatePos.y = e.clientY - @startDragOffset.y
 
-      if @touchDragStarted
-        buffer = 20
-        @touchDragThresholdReached = Math.abs(@startTranslatePos.x - @translatePos.x) > buffer ||
-                    Math.abs(@startTranslatePos.y - @translatePos.y) > buffer unless @touchDragThresholdReached
+        console.log 'during drag', @translatePos if @settings.debug
 
-        @draw() if @touchDragThresholdReached && !@touchZooming
+        if @touchDragStarted
+          buffer = 10
 
-      else
-        @draw()
+          unless @touchDragThresholdReached
+            @touchDragThresholdReached = Math.abs(@startTranslatePos.x - @translatePos.x) > buffer ||
+                                         Math.abs(@startTranslatePos.y - @translatePos.y) > buffer
+
+          @draw() if @touchDragThresholdReached && !@touchZooming
+
+        else
+          @draw()
 
     # Add drag handlers
     canvas.addEventListener "mousedown", (e) =>
@@ -198,12 +203,15 @@ class Canvas
     ###
     canvas.addEventListener "touchstart", (e) =>
       e.preventDefault()
-      console.log 'canvas touchstart'
+
       if e.touches.length == 2
+        console.log 'touchstart 2' if @settings.debug
         @touchZooming = true
+        @touchDragStarted = false
         @startScale = parseFloat @scale
         @startPinchDistance = getPinchDistance e.touches
       else
+        console.log 'touchstart 1' if @settings.debug
         @touchDragStarted = true
         startDrag e.touches[0]
     , false
@@ -229,6 +237,7 @@ class Canvas
         (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY))
 
     touchZoom = (touches) =>
+      @touchZooming = true
       pinchDistance = getPinchDistance touches
       delta = pinchDistance / @startPinchDistance
       @scale = @startScale * delta
@@ -256,15 +265,24 @@ class Canvas
   @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
   ###
   dragHandler: (dragging, cursor) ->
+    console.log 'touchZooming', @touchZooming if @settings.debug
     if @mouseDown = dragging
       @el.style.cursor = cursor || 'move'
     else
       @el.style.cursor = cursor || 'pointer'
-      @touchDragStarted = false
-      @touchDragThresholdReached = false
+      @clearTouchState()
 
-      # Prevent zooming from becoming dragging during touch release
-      setTimeout =>
+
+  clearTouchState: ->
+    @touchDragStarted = false
+    @touchDragThresholdReached = false
+
+    # Prevent zooming from becoming dragging during touch release
+    if @touchZooming
+      clearTimeout @touchZoomTimeout if @touchZoomTimeout
+
+      @touchZoomTimeout = setTimeout =>
+        console.log 'touchzoom timed out!' if @settings.debug
         @touchZooming = false
       , 500
 

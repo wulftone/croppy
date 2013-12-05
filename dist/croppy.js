@@ -42,6 +42,9 @@ Canvas = (function() {
     cx = this.el.getContext("2d");
     cx.clearRect(0, 0, this.el.width, this.el.height);
     cx.save();
+    if (this.settings.debug) {
+      console.log('translatePos:', this.translatePos, ', scale:', parseFloat(this.scale.toPrecision(2)), ', angle:', this.currentAngle);
+    }
     cx.translate(this.translatePos.x + this.el.width / 2, this.translatePos.y + this.el.height / 2);
     cx.scale(this.scale, this.scale);
     cx.rotate(this.currentAngle * Math.PI / 180);
@@ -164,19 +167,24 @@ Canvas = (function() {
     };
     drawDuringDrag = function(e) {
       var buffer;
-      _this.dragHandler(true);
-      _this.translatePos.x = e.clientX - _this.startDragOffset.x;
-      _this.translatePos.y = e.clientY - _this.startDragOffset.y;
-      if (_this.touchDragStarted) {
-        buffer = 20;
-        if (!_this.touchDragThresholdReached) {
-          _this.touchDragThresholdReached = Math.abs(_this.startTranslatePos.x - _this.translatePos.x) > buffer || Math.abs(_this.startTranslatePos.y - _this.translatePos.y) > buffer;
+      if (!_this.touchZooming) {
+        _this.dragHandler(true);
+        _this.translatePos.x = e.clientX - _this.startDragOffset.x;
+        _this.translatePos.y = e.clientY - _this.startDragOffset.y;
+        if (_this.settings.debug) {
+          console.log('during drag', _this.translatePos);
         }
-        if (_this.touchDragThresholdReached && !_this.touchZooming) {
+        if (_this.touchDragStarted) {
+          buffer = 10;
+          if (!_this.touchDragThresholdReached) {
+            _this.touchDragThresholdReached = Math.abs(_this.startTranslatePos.x - _this.translatePos.x) > buffer || Math.abs(_this.startTranslatePos.y - _this.translatePos.y) > buffer;
+          }
+          if (_this.touchDragThresholdReached && !_this.touchZooming) {
+            return _this.draw();
+          }
+        } else {
           return _this.draw();
         }
-      } else {
-        return _this.draw();
       }
     };
     canvas.addEventListener("mousedown", function(e) {
@@ -209,12 +217,18 @@ Canvas = (function() {
 
     canvas.addEventListener("touchstart", function(e) {
       e.preventDefault();
-      console.log('canvas touchstart');
       if (e.touches.length === 2) {
+        if (_this.settings.debug) {
+          console.log('touchstart 2');
+        }
         _this.touchZooming = true;
+        _this.touchDragStarted = false;
         _this.startScale = parseFloat(_this.scale);
         return _this.startPinchDistance = getPinchDistance(e.touches);
       } else {
+        if (_this.settings.debug) {
+          console.log('touchstart 1');
+        }
         _this.touchDragStarted = true;
         return startDrag(e.touches[0]);
       }
@@ -236,6 +250,7 @@ Canvas = (function() {
     };
     touchZoom = function(touches) {
       var delta, pinchDistance;
+      _this.touchZooming = true;
       pinchDistance = getPinchDistance(touches);
       delta = pinchDistance / _this.startPinchDistance;
       _this.scale = _this.startScale * delta;
@@ -263,14 +278,29 @@ Canvas = (function() {
 
 
   Canvas.prototype.dragHandler = function(dragging, cursor) {
-    var _this = this;
+    if (this.settings.debug) {
+      console.log('touchZooming', this.touchZooming);
+    }
     if (this.mouseDown = dragging) {
       return this.el.style.cursor = cursor || 'move';
     } else {
       this.el.style.cursor = cursor || 'pointer';
-      this.touchDragStarted = false;
-      this.touchDragThresholdReached = false;
-      return setTimeout(function() {
+      return this.clearTouchState();
+    }
+  };
+
+  Canvas.prototype.clearTouchState = function() {
+    var _this = this;
+    this.touchDragStarted = false;
+    this.touchDragThresholdReached = false;
+    if (this.touchZooming) {
+      if (this.touchZoomTimeout) {
+        clearTimeout(this.touchZoomTimeout);
+      }
+      return this.touchZoomTimeout = setTimeout(function() {
+        if (_this.settings.debug) {
+          console.log('touchzoom timed out!');
+        }
         return _this.touchZooming = false;
       }, 500);
     }
