@@ -15,6 +15,7 @@ Canvas = (function() {
     _ref = this.settings.rot, this.cw = _ref[0], this.ccw = _ref[1];
     _ref1 = this.settings.zoomButtons, this.zoomPlus = _ref1[0], this.zoomMinus = _ref1[1];
     this.currentAngle = this.settings.currentAngle;
+    this.scale = this.settings.scale;
     this.scaleMultiplier = this.settings.scaleMultiplier;
     this.mousewheelZoom = this.settings.mousewheelZoom;
     this.mouseDown = false;

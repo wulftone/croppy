@@ -11,6 +11,7 @@ class Canvas
     [@cw, @ccw]             = @settings.rot
     [@zoomPlus, @zoomMinus] = @settings.zoomButtons
     @currentAngle           = @settings.currentAngle
+    @scale                  = @settings.scale
     @scaleMultiplier        = @settings.scaleMultiplier
     @mousewheelZoom         = @settings.mousewheelZoom
     @mouseDown              = false
