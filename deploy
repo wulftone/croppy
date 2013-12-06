@@ -1,13 +1,15 @@
 #!/bin/bash
-
-git checkout gh-pages
-git checkout master -- example/index.html example/all.css example/images/ dist/croppy.js
-mv dist/croppy.js ./
-rm -r dist
-mv example/images/* ./images
-rm -r example/images
-mv example/* ./
-rm -r example
-git commit -a -m 'update'
-git push
-git checkout master
+REPO=`git remote -v | grep origin | grep push | awk '{print $2}'`
+mkdir gh-pages && \
+cp dist/croppy.js gh-pages/ && \
+cp example/index.html gh-pages/ && \
+cp example/all.css gh-pages/ && \
+cp -r example/images gh-pages/ && \
+cp readme.md gh-pages && \
+cd gh-pages && \
+git init && \
+git add . && \
+git commit -m 'deploy' && \
+git push $REPO master:gh-pages --force && \
+cd .. && \
+rm -rf gh-pages
