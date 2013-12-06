@@ -133,6 +133,11 @@ class Croppy
 
 
   ###
+  Exports all useful data about the crop and image.  All coordinates are
+  relative to the center of the canvas, except the crop data, which is
+  relative to the center of the image as if its angle of rotation was 0.
+  We do this because it works nicely with ImageMagick.
+
   @return [Object] A bunch of useful data about the position and size
                    of both image and crop, and image rotation, image
                    scale, and a reference to the source data.
