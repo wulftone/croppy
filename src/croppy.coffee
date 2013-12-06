@@ -1,3 +1,4 @@
+Hand = require './hand-1.2.2.js'
 Util = require './util.coffee'
 Canvas = require './canvas.coffee'
 

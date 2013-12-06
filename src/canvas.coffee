@@ -7,14 +7,14 @@ class Canvas
 
 
   constructor: (options) ->
-    @settings                  = Util.merge options, @defaults
-    [@cw, @ccw]                = @settings.rot
-    [@zoomPlus, @zoomMinus]    = @settings.zoomButtons
-    @currentAngle              = @settings.currentAngle
-    @scaleMultiplier           = @settings.scaleMultiplier
-    @mousewheelZoom            = @settings.mousewheelZoom
-    @mouseDown                 = false
-    @startDragOffset           = {}
+    @settings               = Util.merge options, @defaults
+    [@cw, @ccw]             = @settings.rot
+    [@zoomPlus, @zoomMinus] = @settings.zoomButtons
+    @currentAngle           = @settings.currentAngle
+    @scaleMultiplier        = @settings.scaleMultiplier
+    @mousewheelZoom         = @settings.mousewheelZoom
+    @mouseDown              = false
+    @startDragOffset        = {}
 
     # Do these last
     @el    = @createCanvas()
@@ -72,7 +72,7 @@ class Canvas
         @draw()
 
     # Add rotation handlers
-    @cw.addEventListener  "click", rotateCW,  false if @cw
+    @cw .addEventListener "click", rotateCW,  false if @cw
     @ccw.addEventListener "click", rotateCCW, false if @ccw
 
     ###
@@ -116,39 +116,23 @@ class Canvas
         clearInterval @mouseDownIntervalId
 
     if @zoomPlus # Zooming in
-      @zoomPlus.addEventListener 'mousedown', (e) =>
+      @zoomPlus.addEventListener 'pointerdown', (e) =>
+        e.preventDefault()
         zooming zoomIn if e.button == 0
       , false
 
-      @zoomPlus.addEventListener 'mouseup', =>
-        endZooming()
-      , false
-
-      @zoomPlus.addEventListener "touchstart", (e) =>
-        e.preventDefault()
-        zooming zoomIn
-      , false
-
-      @zoomPlus.addEventListener "touchend", (e) =>
+      @zoomPlus.addEventListener 'pointerup', (e) =>
         e.preventDefault()
         endZooming()
       , false
 
     if @zoomMinus # Zooming out
-      @zoomMinus.addEventListener 'mousedown', (e) =>
+      @zoomMinus.addEventListener 'pointerdown', (e) =>
+        e.preventDefault()
         zooming zoomOut if e.button == 0
       , false
 
-      @zoomMinus.addEventListener 'mouseup', =>
-        endZooming()
-      , false
-
-      @zoomMinus.addEventListener "touchstart", (e) =>
-        e.preventDefault()
-        zooming zoomOut
-      , false
-
-      @zoomMinus.addEventListener "touchend", (e) =>
+      @zoomMinus.addEventListener 'pointerup', (e) =>
         e.preventDefault()
         endZooming()
       , false
@@ -157,111 +141,98 @@ class Canvas
     ###
     Dragging
     ###
-    startDrag = (e) =>
+    startDrag = (x, y) =>
       @dragHandler true
       @startTranslatePos =
         x: @translatePos.x
         y: @translatePos.y
 
-      @startDragOffset.x = e.clientX - @translatePos.x
-      @startDragOffset.y = e.clientY - @translatePos.y
+      @startDragOffset.x = x - @translatePos.x
+      @startDragOffset.y = y - @translatePos.y
 
-    drawDuringDrag = (e) =>
+    drawDuringDrag = (x, y) =>
       unless @touchZooming
         @dragHandler true
-        @translatePos.x = e.clientX - @startDragOffset.x
-        @translatePos.y = e.clientY - @startDragOffset.y
 
-        console.log 'during drag', @translatePos if @settings.debug
+        @translatePos.x = x - @startDragOffset.x
+        @translatePos.y = y - @startDragOffset.y
+
+        # console.log 'during drag', @translatePos if @settings.debug
 
         if @touchDragStarted
-          buffer = 10
+          threshold = 10
 
           unless @touchDragThresholdReached
-            @touchDragThresholdReached = Math.abs(@startTranslatePos.x - @translatePos.x) > buffer ||
-                                         Math.abs(@startTranslatePos.y - @translatePos.y) > buffer
+            # Allow dragging if the current distance traveled is greater than a threshold distance
+            @touchDragThresholdReached = Math.abs(@startTranslatePos.x - @translatePos.x) > threshold ||
+                                         Math.abs(@startTranslatePos.y - @translatePos.y) > threshold
 
-          @draw() if @touchDragThresholdReached && !@touchZooming
+          @draw() if @touchDragThresholdReached
 
         else
           @draw()
 
-    # Add drag handlers
-    canvas.addEventListener "mousedown", (e) =>
-      e.preventDefault()
-      startDrag(e) if e.button == 0
+    getPinchDistance = (x1, y1, x2, y2) ->
+      Math.sqrt( (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) )
 
-    canvas.addEventListener "mouseup", (e) =>
-      e.preventDefault()
-      @dragHandler false
-
-    canvas.addEventListener "mouseover", (e) =>
-      e.preventDefault()
-      @dragHandler false
-
-    canvas.addEventListener "mouseout", (e) =>
-      e.preventDefault()
-      @dragHandler false, 'initial'
-
-    canvas.addEventListener "mousemove", (e) =>
-      e.preventDefault()
-      drawDuringDrag(e) if @mouseDown && e.button == 0
-
-    ###
-    Canvas touch drag and zoom events
-    ###
-    canvas.addEventListener "touchstart", (e) =>
-      e.preventDefault()
-
-      if e.touches.length == 2
-        console.log 'touchstart 2' if @settings.debug
-        @touchZooming = true
-        @touchDragStarted = false
-        @startScale = parseFloat @scale
-        @startPinchDistance = getPinchDistance e.touches
-      else
-        console.log 'touchstart 1' if @settings.debug
-        @touchDragStarted = true
-        startDrag e.touches[0]
-    , false
-
-    canvas.addEventListener "touchend", (e) =>
-      e.preventDefault()
-      @dragHandler false
-    , false
-
-    canvas.addEventListener "touchcancel", (e) =>
-      e.preventDefault()
-      @dragHandler false
-    , false
-
-    canvas.addEventListener "touchleave", (e) =>
-      e.preventDefault()
-      @dragHandler false
-    , false
-
-    getPinchDistance = (touches) ->
-      Math.sqrt(
-        (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX) +
-        (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY))
-
-    touchZoom = (touches) =>
+    touchZoom = (x1, y1, x2, y2) =>
       @touchZooming = true
-      pinchDistance = getPinchDistance touches
+      pinchDistance = getPinchDistance x1, y1, x2, y2
       delta = pinchDistance / @startPinchDistance
       @scale = @startScale * delta
       @draw()
 
-    canvas.addEventListener "touchmove", (e) =>
+    updatePointer = (pointer) =>
+      @pointers.map (p) ->
+        if p.pointerId == pointer.pointerId
+          pointer
+        else
+          p
+
+
+    stopDrag = (e) =>
       e.preventDefault()
+      @dragHandler false
 
-      if e.touches.length == 2
-        touchZoom e.touches
-        # touchRotate e.touches # TODO!
+    handlePointerDown = (e) =>
+      e.preventDefault()
+      @pointers    ||= []
+      @pointers.push e
+
+      if @pointers.length == 2
+        console.log 'touchstart 2' if @settings.debug
+        @touchZooming = true
+        @touchDragStarted = false
+        @startScale = parseFloat @scale
+        @startPinchDistance = getPinchDistance @pointers[0].clientX, @pointers[0].clientY, @pointers[1].clientX, @pointers[1].clientY
+
       else
-        drawDuringDrag e.touches[0]
-    , false
+        console.log 'touchstart 1' if @settings.debug
+        @touchZooming = false
+        @touchDragStarted = true
+        startDrag @pointers[0].clientX, @pointers[0].clientY
 
+    handlePointerMove = (e) =>
+      e.preventDefault()
+      return unless @pointers && @pointers.length > 0
+
+      @pointers = updatePointer e
+
+      if @pointers.length == 2
+        touchZoom @pointers[0].clientX, @pointers[0].clientY, @pointers[1].clientX, @pointers[1].clientY
+        # touchRotate e.touches # TODO!
+
+      else
+        drawDuringDrag @pointers[0].clientX, @pointers[0].clientY
+
+    ###
+    Canvas drag and zoom events
+    ###
+    canvas.addEventListener "pointerdown"  , handlePointerDown, false
+    canvas.addEventListener "pointermove"  , handlePointerMove, false
+    canvas.addEventListener "pointerup"    , stopDrag         , false
+    canvas.addEventListener "pointercancel", stopDrag         , false
+    canvas.addEventListener "pointerleave" , stopDrag         , false
     canvas
 
 
@@ -274,7 +245,7 @@ class Canvas
   @param cursor   [String]  (optional) Makes a decent CSS choice if there is no argument given.
   ###
   dragHandler: (dragging, cursor) ->
-    console.log 'touchZooming', @touchZooming if @settings.debug
+    # console.log 'touchZooming', @touchZooming if @settings.debug
     if @mouseDown = dragging
       @el.style.cursor = cursor || 'move'
     else
@@ -283,6 +254,12 @@ class Canvas
 
 
   clearTouchState: ->
+    console.log 'clearing touch state' if @settings.debug
+
+    # Reset the pointers
+    @pointers = []
+
+    # Reset these state variables
     @touchDragStarted = false
     @touchDragThresholdReached = false
 
