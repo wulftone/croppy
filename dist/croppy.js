@@ -52,8 +52,15 @@ Canvas = (function() {
     return cx.restore();
   };
 
+  /*
+  Creates a canvas element and attaches a whole mess of event handlers
+  
+  @return [DOMElement] The canvas element
+  */
+
+
   Canvas.prototype.createCanvas = function() {
-    var canvas, drawDuringDrag, endZooming, getPinchDistance, handlePointerDown, handlePointerMove, mouseWheelZooming, rotateCCW, rotateCW, startDrag, stopDrag, touchZoom, updatePointer, zoomIn, zoomOut, zooming,
+    var canvas, drawDuringDrag, endZooming, getPinchDistance, mouseWheelZooming, moveZoomOrDrag, rotateCCW, rotateCW, startDrag, startZoomOrDrag, stopDrag, touchZoom, updatePointer, zoomIn, zoomInHandler, zoomOut, zoomOutHandler, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
@@ -76,28 +83,62 @@ Canvas = (function() {
       };
     }
     if (this.cw) {
-      this.cw.addEventListener("click", rotateCW, false);
+      this.cw.addEventListener("click", rotateCW);
     }
     if (this.ccw) {
-      this.ccw.addEventListener("click", rotateCCW, false);
+      this.ccw.addEventListener("click", rotateCCW);
     }
     /*
     Zoom functions
     */
 
     if (this.zoomPlus || this.mousewheelZoom) {
+      /*
+      Does the actual zooming in
+      */
+
       zoomIn = function() {
         _this.scale *= _this.scaleMultiplier;
         return _this.draw();
       };
+      /*
+      Attach this to the appropriate event
+      */
+
+      zoomInHandler = function(e) {
+        e.preventDefault();
+        if (e.button === 0 || e.button === void 0) {
+          return zooming(zoomIn);
+        }
+      };
     }
     if (this.zoomMinus || this.mousewheelZoom) {
+      /*
+      Does the actual zooming out
+      */
+
       zoomOut = function() {
         _this.scale /= _this.scaleMultiplier;
         return _this.draw();
       };
+      /*
+      Attach this to the appropriate event
+      */
+
+      zoomOutHandler = function(e) {
+        e.preventDefault();
+        if (e.button === 0 || e.button === void 0) {
+          return zooming(zoomOut);
+        }
+      };
     }
     if (this.mousewheelZoom) {
+      /*
+      Determines whether or not to zoom in or out
+      
+      @param delta [Number] The mousewheel delta
+      */
+
       mouseWheelZooming = function(delta) {
         if (delta > 0) {
           return zoomIn();
@@ -108,48 +149,52 @@ Canvas = (function() {
       canvas.addEventListener("mousewheel", function(e) {
         e.preventDefault();
         return mouseWheelZooming(e.wheelDelta);
-      }, false);
+      });
       canvas.addEventListener("wheel", function(e) {
         e.preventDefault();
         return mouseWheelZooming(e.deltaY);
-      }, false);
+      });
     }
     if (this.zoomPlus || this.zoomMinus) {
+      /*
+      Performs the zooming with the given function and sets a debounce timer
+      so dragging doesn't happen immediately after zooming, preventing the image
+      from suddenly jumping around after a zoom.
+      
+      @param fn [Function] The zoom operation to perform (zoomIn, zoomOut)
+      */
+
       zooming = function(fn) {
         _this.mouseDown = true;
         return _this.mouseDownIntervalId = setInterval(fn, 50);
       };
+      /*
+      Resets the state after zooming is over
+      */
+
       endZooming = function(e) {
+        e.preventDefault();
         _this.mouseDown = false;
         return clearInterval(_this.mouseDownIntervalId);
       };
     }
     if (this.zoomPlus) {
-      this.zoomPlus.addEventListener('pointerdown', function(e) {
-        e.preventDefault();
-        if (e.button === 0) {
-          return zooming(zoomIn);
-        }
-      }, false);
-      this.zoomPlus.addEventListener('pointerup', function(e) {
-        e.preventDefault();
-        return endZooming();
-      }, false);
+      this.zoomPlus.addEventListener('pointerdown', zoomInHandler);
+      this.zoomPlus.addEventListener('pointerup', endZooming);
     }
     if (this.zoomMinus) {
-      this.zoomMinus.addEventListener('pointerdown', function(e) {
-        e.preventDefault();
-        if (e.button === 0) {
-          return zooming(zoomOut);
-        }
-      }, false);
-      this.zoomMinus.addEventListener('pointerup', function(e) {
-        e.preventDefault();
-        return endZooming();
-      }, false);
+      this.zoomMinus.addEventListener('pointerdown', zoomOutHandler);
+      this.zoomMinus.addEventListener('pointerup', endZooming);
     }
     /*
     Dragging
+    */
+
+    /*
+    Set up the proper state variables to keep track of initial drag position
+    
+    @param x [Number] The initial pointer state x coordinate
+    @param y [Number] The initial pointer state y coordinate
     */
 
     startDrag = function(x, y) {
@@ -161,6 +206,14 @@ Canvas = (function() {
       _this.startDragOffset.x = x - _this.translatePos.x;
       return _this.startDragOffset.y = y - _this.translatePos.y;
     };
+    /*
+    Used by either a mouse or touch event handler (this is why it's abstracted out).
+    Draws the image according to the current state and the given coordinates.
+    
+    @param x [Number] The latest pointer state x coordinate
+    @param y [Number] The latest pointer state y coordinate
+    */
+
     drawDuringDrag = function(x, y) {
       var threshold;
       if (!_this.touchZooming) {
@@ -180,9 +233,38 @@ Canvas = (function() {
         }
       }
     };
+    /*
+    Stop the event and set the appropriate state
+    */
+
+    stopDrag = function(e) {
+      e.preventDefault();
+      console.log('stopping drag');
+      return _this.dragHandler(false);
+    };
+    /*
+    Standard pythagorean theorem
+    
+    @param x1 [Number] The x coordinate of a pair of coordinates
+    @param y1 [Number] The y coordinate of a pair of coordinates
+    @param x2 [Number] The x coordinate of a pair of coordinates
+    @param y2 [Number] The y coordinate of a pair of coordinates
+    
+    @return [Number] The distance between the two coordinates
+    */
+
     getPinchDistance = function(x1, y1, x2, y2) {
       return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
     };
+    /*
+    Performs the scaling involved in a "pinch" touch zoom operation
+    
+    @param x1 [Number] The x coordinate of a pair of coordinates
+    @param y1 [Number] The y coordinate of a pair of coordinates
+    @param x2 [Number] The x coordinate of a pair of coordinates
+    @param y2 [Number] The y coordinate of a pair of coordinates
+    */
+
     touchZoom = function(x1, y1, x2, y2) {
       var delta, pinchDistance;
       _this.touchZooming = true;
@@ -191,6 +273,10 @@ Canvas = (function() {
       _this.scale = _this.startScale * delta;
       return _this.draw();
     };
+    /*
+    Keep the state `@pointers` up to date with the current values
+    */
+
     updatePointer = function(pointer) {
       return _this.pointers.map(function(p) {
         if (p.pointerId === pointer.pointerId) {
@@ -200,11 +286,11 @@ Canvas = (function() {
         }
       });
     };
-    stopDrag = function(e) {
-      e.preventDefault();
-      return _this.dragHandler(false);
-    };
-    handlePointerDown = function(e) {
+    /*
+    Setup the state for beginning either a drag or a zoom
+    */
+
+    startZoomOrDrag = function(e) {
       e.preventDefault();
       _this.pointers || (_this.pointers = []);
       _this.pointers.push(e);
@@ -225,7 +311,11 @@ Canvas = (function() {
         return startDrag(_this.pointers[0].clientX, _this.pointers[0].clientY);
       }
     };
-    handlePointerMove = function(e) {
+    /*
+    When the pointer moves, choose whether we're doing a drag or zoom operation
+    */
+
+    moveZoomOrDrag = function(e) {
       e.preventDefault();
       if (!(_this.pointers && _this.pointers.length > 0)) {
         return;
@@ -241,11 +331,11 @@ Canvas = (function() {
     Canvas drag and zoom events
     */
 
-    canvas.addEventListener("pointerdown", handlePointerDown, false);
-    canvas.addEventListener("pointermove", handlePointerMove, false);
-    canvas.addEventListener("pointerup", stopDrag, false);
-    canvas.addEventListener("pointercancel", stopDrag, false);
-    canvas.addEventListener("pointerleave", stopDrag, false);
+    canvas.addEventListener("pointerdown", startZoomOrDrag);
+    canvas.addEventListener("pointermove", moveZoomOrDrag);
+    canvas.addEventListener("pointerup", stopDrag);
+    canvas.addEventListener("pointercancel", stopDrag);
+    canvas.addEventListener("pointerleave", stopDrag);
     return canvas;
   };
 
@@ -267,6 +357,11 @@ Canvas = (function() {
       return this.clearTouchState();
     }
   };
+
+  /*
+  Clears/resets touch-related state variables
+  */
+
 
   Canvas.prototype.clearTouchState = function() {
     var _this = this;

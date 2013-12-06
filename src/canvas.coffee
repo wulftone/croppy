@@ -52,6 +52,11 @@ class Canvas
     cx.restore()
 
 
+  ###
+  Creates a canvas element and attaches a whole mess of event handlers
+
+  @return [DOMElement] The canvas element
+  ###
   createCanvas: ->
     canvas        = document.createElement 'canvas'
     canvas.id     = 'croppy-canvas'
@@ -72,23 +77,48 @@ class Canvas
         @draw()
 
     # Add rotation handlers
-    @cw .addEventListener "click", rotateCW,  false if @cw
-    @ccw.addEventListener "click", rotateCCW, false if @ccw
+    @cw .addEventListener "click", rotateCW  if @cw
+    @ccw.addEventListener "click", rotateCCW if @ccw
 
     ###
     Zoom functions
     ###
     if @zoomPlus || @mousewheelZoom
+      ###
+      Does the actual zooming in
+      ###
       zoomIn = =>
         @scale *= @scaleMultiplier
         @draw()
 
+      ###
+      Attach this to the appropriate event
+      ###
+      zoomInHandler = (e) =>
+        e.preventDefault()
+        zooming zoomIn if e.button == 0 || e.button == undefined
+
     if @zoomMinus || @mousewheelZoom
+      ###
+      Does the actual zooming out
+      ###
       zoomOut = =>
         @scale /= @scaleMultiplier
         @draw()
 
+      ###
+      Attach this to the appropriate event
+      ###
+      zoomOutHandler = (e) =>
+        e.preventDefault()
+        zooming zoomOut if e.button == 0 || e.button == undefined
+
     if @mousewheelZoom
+      ###
+      Determines whether or not to zoom in or out
+
+      @param delta [Number] The mousewheel delta
+      ###
       mouseWheelZooming = (delta) ->
         if delta > 0
           zoomIn()
@@ -96,50 +126,54 @@ class Canvas
           zoomOut()
 
       # Add zoom handlers
+      # Webkit
       canvas.addEventListener "mousewheel", (e) =>
         e.preventDefault()
         mouseWheelZooming e.wheelDelta
-      , false
 
+      # Gecko
       canvas.addEventListener "wheel", (e) =>
         e.preventDefault()
         mouseWheelZooming e.deltaY
-      , false
 
     if @zoomPlus || @zoomMinus
+      ###
+      Performs the zooming with the given function and sets a debounce timer
+      so dragging doesn't happen immediately after zooming, preventing the image
+      from suddenly jumping around after a zoom.
+
+      @param fn [Function] The zoom operation to perform (zoomIn, zoomOut)
+      ###
       zooming = (fn) =>
         @mouseDown = true
         @mouseDownIntervalId = setInterval fn, 50
 
+      ###
+      Resets the state after zooming is over
+      ###
       endZooming = (e) =>
+        e.preventDefault()
         @mouseDown = false
         clearInterval @mouseDownIntervalId
 
     if @zoomPlus # Zooming in
-      @zoomPlus.addEventListener 'pointerdown', (e) =>
-        e.preventDefault()
-        zooming zoomIn if e.button == 0
-      , false
-
-      @zoomPlus.addEventListener 'pointerup', (e) =>
-        e.preventDefault()
-        endZooming()
-      , false
+      @zoomPlus.addEventListener  'pointerdown', zoomInHandler
+      @zoomPlus.addEventListener  'pointerup'  , endZooming
 
     if @zoomMinus # Zooming out
-      @zoomMinus.addEventListener 'pointerdown', (e) =>
-        e.preventDefault()
-        zooming zoomOut if e.button == 0
-      , false
-
-      @zoomMinus.addEventListener 'pointerup', (e) =>
-        e.preventDefault()
-        endZooming()
-      , false
+      @zoomMinus.addEventListener  'pointerdown', zoomOutHandler
+      @zoomMinus.addEventListener  'pointerup'  , endZooming
 
 
     ###
     Dragging
+    ###
+
+    ###
+    Set up the proper state variables to keep track of initial drag position
+
+    @param x [Number] The initial pointer state x coordinate
+    @param y [Number] The initial pointer state y coordinate
     ###
     startDrag = (x, y) =>
       @dragHandler true
@@ -150,6 +184,14 @@ class Canvas
       @startDragOffset.x = x - @translatePos.x
       @startDragOffset.y = y - @translatePos.y
 
+
+    ###
+    Used by either a mouse or touch event handler (this is why it's abstracted out).
+    Draws the image according to the current state and the given coordinates.
+
+    @param x [Number] The latest pointer state x coordinate
+    @param y [Number] The latest pointer state y coordinate
+    ###
     drawDuringDrag = (x, y) =>
       unless @touchZooming
         @dragHandler true
@@ -172,9 +214,38 @@ class Canvas
         else
           @draw()
 
+
+    ###
+    Stop the event and set the appropriate state
+    ###
+    stopDrag = (e) =>
+      e.preventDefault()
+      console.log 'stopping drag'
+      @dragHandler false
+
+
+    ###
+    Standard pythagorean theorem
+
+    @param x1 [Number] The x coordinate of a pair of coordinates
+    @param y1 [Number] The y coordinate of a pair of coordinates
+    @param x2 [Number] The x coordinate of a pair of coordinates
+    @param y2 [Number] The y coordinate of a pair of coordinates
+
+    @return [Number] The distance between the two coordinates
+    ###
     getPinchDistance = (x1, y1, x2, y2) ->
       Math.sqrt( (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) )
 
+
+    ###
+    Performs the scaling involved in a "pinch" touch zoom operation
+
+    @param x1 [Number] The x coordinate of a pair of coordinates
+    @param y1 [Number] The y coordinate of a pair of coordinates
+    @param x2 [Number] The x coordinate of a pair of coordinates
+    @param y2 [Number] The y coordinate of a pair of coordinates
+    ###
     touchZoom = (x1, y1, x2, y2) =>
       @touchZooming = true
       pinchDistance = getPinchDistance x1, y1, x2, y2
@@ -182,6 +253,10 @@ class Canvas
       @scale = @startScale * delta
       @draw()
 
+
+    ###
+    Keep the state `@pointers` up to date with the current values
+    ###
     updatePointer = (pointer) =>
       @pointers.map (p) ->
         if p.pointerId == pointer.pointerId
@@ -190,11 +265,10 @@ class Canvas
           p
 
 
-    stopDrag = (e) =>
-      e.preventDefault()
-      @dragHandler false
-
-    handlePointerDown = (e) =>
+    ###
+    Setup the state for beginning either a drag or a zoom
+    ###
+    startZoomOrDrag = (e) =>
       e.preventDefault()
       @pointers    ||= []
       @pointers.push e
@@ -212,7 +286,11 @@ class Canvas
         @touchDragStarted = true
         startDrag @pointers[0].clientX, @pointers[0].clientY
 
-    handlePointerMove = (e) =>
+
+    ###
+    When the pointer moves, choose whether we're doing a drag or zoom operation
+    ###
+    moveZoomOrDrag = (e) =>
       e.preventDefault()
       return unless @pointers && @pointers.length > 0
 
@@ -225,14 +303,15 @@ class Canvas
       else
         drawDuringDrag @pointers[0].clientX, @pointers[0].clientY
 
+
     ###
     Canvas drag and zoom events
     ###
-    canvas.addEventListener "pointerdown"  , handlePointerDown, false
-    canvas.addEventListener "pointermove"  , handlePointerMove, false
-    canvas.addEventListener "pointerup"    , stopDrag         , false
-    canvas.addEventListener "pointercancel", stopDrag         , false
-    canvas.addEventListener "pointerleave" , stopDrag         , false
+    canvas.addEventListener "pointerdown"  , startZoomOrDrag
+    canvas.addEventListener "pointermove"  , moveZoomOrDrag
+    canvas.addEventListener "pointerup"    , stopDrag
+    canvas.addEventListener "pointercancel", stopDrag
+    canvas.addEventListener "pointerleave" , stopDrag
     canvas
 
 
@@ -253,6 +332,9 @@ class Canvas
       @clearTouchState()
 
 
+  ###
+  Clears/resets touch-related state variables
+  ###
   clearTouchState: ->
     console.log 'clearing touch state' if @settings.debug
 
