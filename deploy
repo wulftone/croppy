@@ -5,6 +5,7 @@ cp dist/croppy.js gh-pages/ && \
 cp example/index.html gh-pages/ && \
 cp example/all.css gh-pages/ && \
 cp -r example/images gh-pages/ && \
+cp readme.md gh-pages && \
 cd gh-pages && \
 git init && \
 git add . && \
