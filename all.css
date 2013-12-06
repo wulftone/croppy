@@ -1,0 +1,27 @@
+canvas {
+  background: green;
+}
+body {
+  font-size: 40px;
+  text-align: center;
+  margin: 10px auto 0;
+}
+#description {
+  width: 300px;
+  margin: 0 auto;
+  font-size: 16px;
+  text-align: left;
+}
+#croppy {
+  box-shadow: 0px 0px 14px 0px black;
+  border: 2px solid green;
+}
+#croppy-zoom-plus,
+#croppy-zoom-minus {
+  margin: 10px;
+}
+@media screen and (max-width: 400px) {
+  body {
+    width: 320px;
+  }
+}

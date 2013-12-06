@@ -1,0 +1,58 @@
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link rel='stylesheet' href='all.css' />
+</head>
+<body>
+
+  <div id='description'>
+    <p>
+      <b>Croppy</b>: a mouse- and touch-enabled rotate/crop/zoom utility.
+    </p>
+    <p>
+      <ul>
+        <li>Drag: mouse or one-finger touch</li>
+        <li>Zoom: mouse wheel, two-finger pinch, or zoom buttons</li>
+        <li>Rotate: rotation buttons</li>
+        <li>Crop: via javascript (see source)</li>
+      </ul>
+    </p>
+  </div>
+
+  <div id='container'></div>
+
+  <script type='text/javascript' src="croppy.js"></script>
+  <script type='text/javascript'>
+    // Comprehensive example.  Many of these have defaults that you won't need to mess with.
+    var cw      = document.getElementById('clockwise'),
+        ccw     = document.getElementById('counter-clockwise'),
+        zoomIn  = document.getElementById('zoom-in'),
+        zoomOut = document.getElementById('zoom-out'),
+
+        c = new Croppy('container', {
+          src          : 'images/phinney.jpg',
+          // src       : 'images/darth-vader.jpg',
+          scale        : 0.1,
+          currentAngle : 90,
+          x            : 100,
+          y            : 100,
+          cropWidth    : 100,
+          cropHeight   : 100,
+          cropTop      : 100,
+          cropLeft     : 100,
+          cropBorder   : '4px ridge tomato',
+          // rot        : [cw, ccw],
+          // zoomButtons: [zoomIn, zoomOut],
+          debug        : true
+        });
+
+    window.c = c;
+
+    // View the crop data after it loads
+    setTimeout(function() {
+      console.log(c.export());
+    }, 400);
+  </script>
+
+</body>
+
