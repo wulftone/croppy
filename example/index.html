@@ -23,15 +23,33 @@
 
   <script type='text/javascript' src="croppy.js"></script>
   <script type='text/javascript'>
-    window.c = new Croppy('container', {
-      // src: 'images/phinney.jpg',
-      src: 'images/darth-vader.jpg',
-      scale: 0.5,
-      debug: true
-    });
+    // Comprehensive example.  Many of these have defaults that you won't need to mess with.
+    var cw      = document.getElementById('clockwise'),
+        ccw     = document.getElementById('counter-clockwise'),
+        zoomIn  = document.getElementById('zoom-in'),
+        zoomOut = document.getElementById('zoom-out'),
 
+        c = new Croppy('container', {
+          src          : 'images/phinney.jpg',
+          // src       : 'images/darth-vader.jpg',
+          scale        : 0.1,
+          currentAngle : 90,
+          x            : 100,
+          y            : 100,
+          cropWidth    : 100,
+          cropHeight   : 100,
+          cropTop      : 100,
+          cropLeft     : 100,
+          cropBorder   : '4px ridge tomato',
+          // rot        : [cw, ccw],
+          // zoomButtons: [zoomIn, zoomOut],
+          debug        : true
+        });
+
+    window.c = c;
+
+    // View the crop data after it loads
     setTimeout(function() {
-      // View the crop data
       console.log(c.export());
     }, 400);
   </script>
