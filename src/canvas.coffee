@@ -280,7 +280,7 @@ class Canvas
     ###
     Setup the state for beginning either a drag or a zoom
     ###
-    startZoomDrag = (e) =>
+    startZoomOrDrag = (e) =>
       e.preventDefault()
       t = e.touches
 
@@ -301,7 +301,7 @@ class Canvas
     ###
     When the pointer moves, choose whether we're doing a drag or zoom operation
     ###
-    moveZoomDrag = (e) =>
+    moveZoomOrDrag = (e) =>
       e.preventDefault()
       t = e.touches
 
@@ -316,8 +316,8 @@ class Canvas
     ###
     Canvas drag and zoom events
     ###
-    canvas.addEventListener "touchstart" , startZoomDrag
-    canvas.addEventListener "touchmove"  , moveZoomDrag
+    canvas.addEventListener "touchstart" , startZoomOrDrag
+    canvas.addEventListener "touchmove"  , moveZoomOrDrag
     canvas.addEventListener "touchend"   , stopDrag
     canvas.addEventListener "touchcancel", stopDrag
     canvas.addEventListener "touchleave" , stopDrag

@@ -60,7 +60,7 @@ Canvas = (function() {
 
 
   Canvas.prototype.createCanvas = function() {
-    var canvas, drawDuringDrag, endZooming, getPinchDistance, mouseWheelZooming, moveZoomDrag, rotateCCW, rotateCW, startDrag, startZoomDrag, stopDrag, touchZoom, zoomIn, zoomInHandler, zoomOut, zoomOutHandler, zooming,
+    var canvas, drawDuringDrag, endZooming, getPinchDistance, mouseWheelZooming, moveZoomOrDrag, rotateCCW, rotateCW, startDrag, startZoomOrDrag, stopDrag, touchZoom, zoomIn, zoomInHandler, zoomOut, zoomOutHandler, zooming,
       _this = this;
     canvas = document.createElement('canvas');
     canvas.id = 'croppy-canvas';
@@ -303,7 +303,7 @@ Canvas = (function() {
     Setup the state for beginning either a drag or a zoom
     */
 
-    startZoomDrag = function(e) {
+    startZoomOrDrag = function(e) {
       var t;
       e.preventDefault();
       t = e.touches;
@@ -328,7 +328,7 @@ Canvas = (function() {
     When the pointer moves, choose whether we're doing a drag or zoom operation
     */
 
-    moveZoomDrag = function(e) {
+    moveZoomOrDrag = function(e) {
       var t;
       e.preventDefault();
       t = e.touches;
@@ -342,8 +342,8 @@ Canvas = (function() {
     Canvas drag and zoom events
     */
 
-    canvas.addEventListener("touchstart", startZoomDrag);
-    canvas.addEventListener("touchmove", moveZoomDrag);
+    canvas.addEventListener("touchstart", startZoomOrDrag);
+    canvas.addEventListener("touchmove", moveZoomOrDrag);
     canvas.addEventListener("touchend", stopDrag);
     canvas.addEventListener("touchcancel", stopDrag);
     canvas.addEventListener("touchleave", stopDrag);
