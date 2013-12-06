@@ -1,5 +1,6 @@
 !function(e){"object"==typeof exports?module.exports=e():"function"==typeof define&&define.amd?define(e):"undefined"!=typeof window?window.Croppy=e():"undefined"!=typeof global?global.Croppy=e():"undefined"!=typeof self&&(self.Croppy=e())}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var Canvas, Util;
+var Canvas, Util,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 Util = require('./util.coffee');
 
@@ -10,6 +11,7 @@ The canvas where the editing all happens
 
 Canvas = (function() {
   function Canvas(options) {
+    this.setupNewImage = __bind(this.setupNewImage, this);
     var _ref, _ref1;
     this.settings = Util.merge(options, this.defaults);
     _ref = this.settings.rot, this.cw = _ref[0], this.ccw = _ref[1];
@@ -20,8 +22,16 @@ Canvas = (function() {
     this.mousewheelZoom = this.settings.mousewheelZoom;
     this.mouseDown = false;
     this.startDragOffset = {};
+    if (this.settings.x || this.settings.y) {
+      this.translatePos = {
+        x: this.settings.x || 0,
+        y: this.settings.y || 0
+      };
+    }
     this.el = this.createCanvas();
-    this.image = this.loadImage();
+    if (this.settings.src) {
+      this.image = this.loadImage();
+    }
   }
 
   Canvas.prototype.defaults = {
@@ -403,29 +413,64 @@ Canvas = (function() {
   */
 
 
-  Canvas.prototype.loadImage = function(src) {
-    var context,
-      _this = this;
-    context = this.el.getContext('2d');
+  Canvas.prototype.loadImage = function(src, autoload) {
+    var _this = this;
+    if (autoload == null) {
+      autoload = false;
+    }
+    if (src && autoload) {
+      this.fullReset();
+    }
     this.image = new Image();
     this.image.onload = function(e) {
-      var img, smallestDimension, xCorrection, yCorrection;
-      img = e.target;
-      if (_this.settings.debug) {
-        console.log('Image width:', img.width, ', height:', img.height);
-      }
-      xCorrection = 0;
-      yCorrection = 0;
-      smallestDimension = img.width < img.height ? img.width : img.height;
-      _this.scale || (_this.scale = _this.el.width / smallestDimension);
-      _this.translatePos = {
-        x: 0,
-        y: 0
-      };
-      return _this.draw();
+      return _this.setupNewImage(e.target);
     };
     this.image.src = src || this.settings.src;
     return this.image;
+  };
+
+  Canvas.prototype.setupNewImage = function(img) {
+    var smallestDimension;
+    if (this.settings.debug) {
+      console.log('Image width:', img.width, ', height:', img.height);
+    }
+    smallestDimension = img.width < img.height ? img.width : img.height;
+    this.scale || (this.scale = this.el.width / smallestDimension);
+    if (!this.translatePos) {
+      this.centerImage();
+    }
+    return this.draw();
+  };
+
+  /*
+  Helper method to center the image on the canvas at any time.
+  */
+
+
+  Canvas.prototype.centerImage = function(draw) {
+    if (draw == null) {
+      draw = true;
+    }
+    this.translatePos = {
+      x: 0,
+      y: 0
+    };
+    if (draw) {
+      return this.draw();
+    }
+  };
+
+  /*
+  For use only when loading a new image and you want to override any previous settings
+  */
+
+
+  Canvas.prototype.fullReset = function() {
+    console.log('full reset');
+    this.scale = 0;
+    this.currentAngle = 0;
+    this.centerImage(false);
+    return this.setupNewImage(this.image);
   };
 
   return Canvas;
@@ -578,6 +623,20 @@ Croppy = (function() {
   };
 
   /*
+  A more public shortcut to load an image onto the canvas
+  
+  @param src [String] A file path, URL, or base64 image
+  */
+
+
+  Croppy.prototype.load = function(src, autoload) {
+    if (autoload == null) {
+      autoload = false;
+    }
+    return this.canvas.loadImage(src, autoload);
+  };
+
+  /*
   Exports all useful data about the crop and image.  All coordinates are
   relative to the center of the canvas, except the crop data, which is
   relative to the center of the image as if its angle of rotation was 0.
@@ -590,29 +649,31 @@ Croppy = (function() {
 
 
   Croppy.prototype["export"] = function() {
-    return {
-      rotation: this.canvas.currentAngle,
-      scale: this.canvas.scale,
-      src: this.settings.src,
-      scaled: {
-        x: this.canvas.translatePos.x,
-        y: this.canvas.translatePos.y,
-        width: this.canvas.image.naturalWidth * this.canvas.scale,
-        height: this.canvas.image.naturalHeight * this.canvas.scale
-      },
-      natural: {
-        x: this.canvas.translatePos.x / this.canvas.scale,
-        y: this.canvas.translatePos.y / this.canvas.scale,
-        width: this.canvas.image.naturalWidth,
-        height: this.canvas.image.naturalHeight
-      },
-      crop: {
-        x: -this.canvas.translatePos.x,
-        y: -this.canvas.translatePos.y,
-        width: parseInt(this.cropOverlay.style.width),
-        height: parseInt(this.cropOverlay.style.height)
-      }
-    };
+    if (this.canvas.image) {
+      return {
+        rotation: this.canvas.currentAngle,
+        scale: this.canvas.scale,
+        src: this.settings.src,
+        scaled: {
+          x: this.canvas.translatePos.x,
+          y: this.canvas.translatePos.y,
+          width: this.canvas.image.naturalWidth * this.canvas.scale,
+          height: this.canvas.image.naturalHeight * this.canvas.scale
+        },
+        natural: {
+          x: this.canvas.translatePos.x / this.canvas.scale,
+          y: this.canvas.translatePos.y / this.canvas.scale,
+          width: this.canvas.image.naturalWidth,
+          height: this.canvas.image.naturalHeight
+        },
+        crop: {
+          x: -this.canvas.translatePos.x,
+          y: -this.canvas.translatePos.y,
+          width: parseInt(this.cropOverlay.style.width),
+          height: parseInt(this.cropOverlay.style.height)
+        }
+      };
+    }
   };
 
   return Croppy;

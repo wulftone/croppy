@@ -17,9 +17,15 @@ class Canvas
     @mouseDown              = false
     @startDragOffset        = {}
 
+    # Load the previous image position, if given
+    if @settings.x || @settings.y
+      @translatePos =
+        x: @settings.x || 0
+        y: @settings.y || 0
+
     # Do these last
     @el    = @createCanvas()
-    @image = @loadImage()
+    @image = @loadImage() if @settings.src
 
 
   defaults:
@@ -370,17 +376,20 @@ class Canvas
 
   @param src [String] The location (href) of the image source
   ###
-  loadImage: (src) ->
-    context = @el.getContext '2d'
-    @image   = new Image()
+  loadImage: (src, autoload = false) ->
+    # If we're loading a new image, reset the state
+    @fullReset() if src && autoload
 
+    @image        = new Image()
     @image.onload = (e) =>
-      img = e.target
+      @setupNewImage e.target
 
+    @image.src = src || @settings.src
+    @image
+
+
+  setupNewImage: (img) =>
       console.log 'Image width:', img.width, ', height:', img.height if @settings.debug
-
-      xCorrection = 0
-      yCorrection = 0
 
       # Calculate the scale so that the entire image fills the box.
       # There may be parts of the image out of view, this is okay.
@@ -393,16 +402,36 @@ class Canvas
       else
         img.height
 
+      # Here we're taking advantage of the number 0's falsiness, and the fact that
+      # The scale should *never ever* be zero in normal use.
       @scale ||= @el.width / smallestDimension
 
-      @translatePos =
-        x: 0
-        y: 0
+      # Default to center unless we've been given a position already
+      @centerImage() unless @translatePos
 
       @draw()
 
-    @image.src = src || @settings.src
-    @image
+
+  ###
+  Helper method to center the image on the canvas at any time.
+  ###
+  centerImage: (draw = true) ->
+    @translatePos =
+      x: 0
+      y: 0
+
+    @draw() if draw
+
+
+  ###
+  For use only when loading a new image and you want to override any previous settings
+  ###
+  fullReset: ->
+    console.log 'full reset'
+    @scale = 0
+    @currentAngle = 0
+    @centerImage false
+    @setupNewImage @image
 
 
 module.exports = Canvas

@@ -133,6 +133,15 @@ class Croppy
 
 
   ###
+  A more public shortcut to load an image onto the canvas
+
+  @param src [String] A file path, URL, or base64 image
+  ###
+  load: (src, autoload = false) ->
+    @canvas.loadImage src, autoload
+
+
+  ###
   Exports all useful data about the crop and image.  All coordinates are
   relative to the center of the canvas, except the crop data, which is
   relative to the center of the image as if its angle of rotation was 0.
@@ -143,30 +152,31 @@ class Croppy
                    scale, and a reference to the source data.
   ###
   export: ->
-    rotation : @canvas.currentAngle # Degrees
-    scale    : @canvas.scale        # i.e. zoom
-    src      : @settings.src        # The original image source
+    if @canvas.image
+      rotation : @canvas.currentAngle # Degrees
+      scale    : @canvas.scale        # i.e. zoom
+      src      : @settings.src        # The original image source
 
-    # Image position an dimensions as appears on screen
-    scaled:
-      x      : @canvas.translatePos.x
-      y      : @canvas.translatePos.y
-      width  : @canvas.image.naturalWidth  * @canvas.scale
-      height : @canvas.image.naturalHeight * @canvas.scale
+      # Image position an dimensions as appears on screen
+      scaled:
+        x      : @canvas.translatePos.x
+        y      : @canvas.translatePos.y
+        width  : @canvas.image.naturalWidth  * @canvas.scale
+        height : @canvas.image.naturalHeight * @canvas.scale
 
-    # Image position an dimensions as if it were not zoomed
-    natural:
-      x      : @canvas.translatePos.x / @canvas.scale
-      y      : @canvas.translatePos.y / @canvas.scale
-      width  : @canvas.image.naturalWidth
-      height : @canvas.image.naturalHeight
+      # Image position an dimensions as if it were not zoomed
+      natural:
+        x      : @canvas.translatePos.x / @canvas.scale
+        y      : @canvas.translatePos.y / @canvas.scale
+        width  : @canvas.image.naturalWidth
+        height : @canvas.image.naturalHeight
 
-    # Center of crop is relative to center of image
-    crop:
-      x      : -@canvas.translatePos.x
-      y      : -@canvas.translatePos.y
-      width  : parseInt @cropOverlay.style.width
-      height : parseInt @cropOverlay.style.height
+      # Center of crop is relative to center of image
+      crop:
+        x      : -@canvas.translatePos.x
+        y      : -@canvas.translatePos.y
+        width  : parseInt @cropOverlay.style.width
+        height : parseInt @cropOverlay.style.height
 
 
 module.exports = Croppy
