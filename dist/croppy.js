@@ -516,6 +516,7 @@ createCroppyEl = function(canvas, cropOverlay, settings) {
   croppyEl.style.margin = '0 auto';
   croppyEl.appendChild(canvas.el);
   croppyEl.appendChild(cropOverlay);
+  makeUnselectable(croppyEl);
   return croppyEl;
 };
 
@@ -544,6 +545,7 @@ Croppy = (function() {
   */
 
   function Croppy(id, options) {
+    var rotDiv, zoomDiv;
     if (options == null) {
       options = {};
     }
@@ -552,6 +554,9 @@ Croppy = (function() {
     this.cropOverlay = createCropOverlay(this.settings);
     this.canvas = new Canvas(this.settings);
     this.canvas.id = 'croppy-canvas';
+    this.el = createCroppyEl(this.canvas, this.cropOverlay, this.settings);
+    this.el.appendChild(rotDiv = createRotDiv(this.canvas));
+    this.el.appendChild(zoomDiv = createZoomDiv(this.canvas));
     this.render();
   }
 
@@ -568,11 +573,7 @@ Croppy = (function() {
   };
 
   Croppy.prototype.render = function() {
-    var rotDiv, zoomDiv;
-    this.el = createCroppyEl(this.canvas, this.cropOverlay, this.settings);
-    makeUnselectable(this.el);
-    this.el.appendChild(rotDiv = createRotDiv(this.canvas));
-    this.el.appendChild(zoomDiv = createZoomDiv(this.canvas));
+    this.container.innerHTML = '';
     return this.container.appendChild(this.el);
   };
 

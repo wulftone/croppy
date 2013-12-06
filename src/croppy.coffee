@@ -76,6 +76,7 @@ createCroppyEl = (canvas, cropOverlay, settings) ->
   croppyEl.style.margin   = '0 auto'
   croppyEl.appendChild canvas.el
   croppyEl.appendChild cropOverlay
+  makeUnselectable croppyEl
   croppyEl
 
 
@@ -108,6 +109,11 @@ class Croppy
     @cropOverlay = createCropOverlay @settings
     @canvas      = new Canvas @settings
     @canvas.id   = 'croppy-canvas'
+
+    @el = createCroppyEl @canvas, @cropOverlay, @settings
+    @el.appendChild( rotDiv = createRotDiv(@canvas) )
+    @el.appendChild( zoomDiv = createZoomDiv(@canvas) )
+
     @render()
 
 
@@ -122,10 +128,7 @@ class Croppy
 
 
   render: ->
-    @el = createCroppyEl @canvas, @cropOverlay, @settings
-    makeUnselectable @el
-    @el.appendChild( rotDiv = createRotDiv(@canvas) )
-    @el.appendChild( zoomDiv = createZoomDiv(@canvas) )
+    @container.innerHTML = ''
     @container.appendChild @el
 
 
