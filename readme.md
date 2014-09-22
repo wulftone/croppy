@@ -2,6 +2,10 @@
 
 A simple HTML5 canvas crop and zoom utility.
 
+# Example
+
+http://wulftone.github.io/croppy
+
 # Usage
 
 Bare minimum usage like so:
@@ -19,3 +23,21 @@ Bare minimum usage like so:
 * `y` [Number] The y position of the image, center weighted
 
 More options TBD... customization things!
+
+# Development
+
+## Installing
+
+    npm install
+
+## Building
+
+    grunt browserify
+
+## Testing
+
+    grunt
+
+## Watching
+
+    grunt watch
