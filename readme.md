@@ -24,6 +24,8 @@ Bare minimum usage like so:
 
 More options TBD... customization things!
 
+See `example/index.html` for more details.
+
 # Development
 
 ## Installing
