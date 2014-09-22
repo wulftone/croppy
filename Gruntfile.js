@@ -39,7 +39,9 @@ module.exports = function(grunt) {
         },
         options: {
           transform: ['coffeeify'],
-          standalone: 'Croppy'
+          browserifyOptions: {
+            standalone: 'Croppy'
+          }
         }
       }
     }
